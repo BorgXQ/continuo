@@ -1,0 +1,5 @@
+Cython==0.29.37
+librosa==0.10.2.post1
+madmom==0.16.1
+matplotlib==3.7.5
+numpy==1.23.5
