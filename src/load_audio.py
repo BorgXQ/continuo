@@ -1,9 +1,10 @@
 from pathlib import Path
+from typing import Union
 import librosa
 
 
 def load_audio(
-    path: str | Path,
+    path: Union[str, Path],
     target_sr: int = 44_100,
 ):
     path = Path(path)
