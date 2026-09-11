@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import threading
 from collections import deque
 from typing import Iterable
 
@@ -12,24 +11,18 @@ import sounddevice as sd
 
 class LiveMusicPlayer:
     """
-    Real-time bar-based audio player.
+    Real-time graph-driven music player.
 
-    Supports two modes:
+    Natural transitions:
+        i -> i + 1
+        Played exactly as they occur in the original recording.
 
-    1. Predetermined sequence
-       Used to validate real-time playback independently of navigation.
+    Artificial transitions:
+        i -> j
+        Receive a short equal-power crossfade.
 
-    2. Navigator-driven playback
-       Uses MusicNavigator.choose_next() to continue indefinitely.
-
-    The audio stream is callback-based and therefore does not block
-    the main application thread.
-
-    Notes
-    -----
-    - No crossfading is performed yet.
-    - Bars are joined directly at their detected boundaries.
-    - Transition smoothing belongs to Step 9.
+    Default artificial-transition crossfade:
+        10 ms
     """
 
     def __init__(
@@ -40,11 +33,13 @@ class LiveMusicPlayer:
         navigator=None,
         blocksize: int = 1024,
         queue_bars: int = 4,
+        crossfade_ms: float = 10.0,
     ):
         self.sr = int(sr)
         self.navigator = navigator
         self.blocksize = int(blocksize)
         self.queue_bars = int(queue_bars)
+        self.crossfade_ms = float(crossfade_ms)
 
         if self.sr <= 0:
             raise ValueError("sr must be > 0.")
@@ -55,8 +50,11 @@ class LiveMusicPlayer:
         if self.queue_bars < 1:
             raise ValueError("queue_bars must be >= 1.")
 
+        if self.crossfade_ms < 0:
+            raise ValueError("crossfade_ms must be >= 0.")
+
         # ---------------------------------------------------------
-        # Convert librosa-style audio:
+        # Convert librosa format:
         #
         # mono:
         #     (samples,)
@@ -93,7 +91,7 @@ class LiveMusicPlayer:
         self.channels = self.audio.shape[1]
 
         # ---------------------------------------------------------
-        # Convert bar times to sample boundaries once.
+        # Convert bar times -> sample boundaries.
         # ---------------------------------------------------------
 
         self.bar_samples = []
@@ -120,7 +118,7 @@ class LiveMusicPlayer:
 
             if end_sample <= start_sample:
                 raise ValueError(
-                    "Invalid bar boundary detected: "
+                    "Invalid bar boundary: "
                     f"{start_time:.3f} -> {end_time:.3f}"
                 )
 
@@ -133,34 +131,68 @@ class LiveMusicPlayer:
                 "No bars were supplied."
             )
 
-        self.n_bars = len(self.bar_samples)
+        self.n_bars = len(
+            self.bar_samples
+        )
 
         # ---------------------------------------------------------
-        # Runtime state
+        # Crossfade configuration.
+        # ---------------------------------------------------------
+
+        self.crossfade_samples = int(
+            round(
+                self.sr
+                * self.crossfade_ms
+                / 1000.0
+            )
+        )
+
+        if self.crossfade_samples > 0:
+
+            theta = np.linspace(
+                0.0,
+                np.pi / 2.0,
+                self.crossfade_samples,
+                endpoint=True,
+                dtype=np.float32,
+            )
+
+            self.fade_out = (
+                np.cos(theta)[:, None]
+            )
+
+            self.fade_in = (
+                np.sin(theta)[:, None]
+            )
+
+        else:
+
+            self.fade_out = None
+            self.fade_in = None
+
+        # ---------------------------------------------------------
+        # Runtime state.
         # ---------------------------------------------------------
 
         self._stream = None
-
         self._running = False
 
         self._mode = None
 
         self._current_bar = None
-
         self._current_audio = None
-
         self._current_position = 0
 
+        # Future bar indices.
         self._bar_queue = deque()
 
+        # Used only for predetermined sequence mode.
         self._sequence = None
         self._sequence_position = 0
 
-        self._lock = threading.RLock()
-
-    # -------------------------------------------------------------
+    # =============================================================
     # Audio extraction
-    # -------------------------------------------------------------
+    # =============================================================
 
     def _get_bar_audio(
         self,
@@ -178,60 +210,38 @@ class LiveMusicPlayer:
 
         return self.audio[start:end]
 
-    # -------------------------------------------------------------
-    # Next-bar policy
-    # -------------------------------------------------------------
+    # =============================================================
+    # Transition type
+    # =============================================================
 
-    def _choose_next_bar(self) -> int | None:
+    @staticmethod
+    def _is_artificial_transition(
+        source_bar: int,
+        target_bar: int,
+    ) -> bool:
         """
-        Determine the next bar according to the active playback mode.
+        Natural continuation is exactly:
 
-        This function contains no audio rendering logic.
+            i -> i + 1
+
+        Any other edge is an artificial graph transition.
+
+        Step 6 guarantees that alternative transitions do not
+        duplicate the natural i -> i + 1 edge.
         """
 
-        if self._mode == "sequence":
-
-            if (
-                self._sequence_position
-                >= len(self._sequence)
-            ):
-                return None
-
-            next_bar = self._sequence[
-                self._sequence_position
-            ]
-
-            self._sequence_position += 1
-
-            return int(next_bar)
-
-        if self._mode == "navigator":
-
-            if self.navigator is None:
-                raise RuntimeError(
-                    "Navigator mode requires a navigator."
-                )
-
-            return int(
-                self.navigator.choose_next(
-                    self._current_bar
-                )
-            )
-
-        raise RuntimeError(
-            "Unknown playback mode."
+        return (
+            target_bar
+            != source_bar + 1
         )
 
-    # -------------------------------------------------------------
+    # =============================================================
     # Queue preparation
-    # -------------------------------------------------------------
+    # =============================================================
 
     def _fill_bar_queue(self) -> None:
         """
-        Keep several upcoming bars prepared.
-
-        In navigator mode, future decisions are made ahead of playback
-        so the audio callback does not need to wait at a bar boundary.
+        Keep several future bars planned ahead.
         """
 
         while (
@@ -239,31 +249,46 @@ class LiveMusicPlayer:
             < self.queue_bars
         ):
 
+            # -----------------------------------------------------
+            # Predetermined sequence mode.
+            # -----------------------------------------------------
+
             if self._mode == "sequence":
 
-                next_bar = (
-                    self._choose_next_bar()
+                if (
+                    self._sequence_position
+                    >= len(self._sequence)
+                ):
+                    break
+
+                next_bar = int(
+                    self._sequence[
+                        self._sequence_position
+                    ]
                 )
+
+                self._sequence_position += 1
+
+            # -----------------------------------------------------
+            # Navigator mode.
+            # -----------------------------------------------------
 
             elif self._mode == "navigator":
 
-                # -------------------------------------------------
-                # Navigation is sequential:
-                #
-                # if queue contains:
-                #
-                #     146, 147
-                #
-                # then the next decision must originate from 147,
-                # not from the currently playing bar.
-                # -------------------------------------------------
+                if self.navigator is None:
+                    raise RuntimeError(
+                        "Navigator mode requires a navigator."
+                    )
 
                 if self._bar_queue:
-                    source_bar = (
+
+                    source_bar = int(
                         self._bar_queue[-1]
                     )
+
                 else:
-                    source_bar = (
+
+                    source_bar = int(
                         self._current_bar
                     )
 
@@ -274,26 +299,26 @@ class LiveMusicPlayer:
                 )
 
             else:
+
                 raise RuntimeError(
                     "Unknown playback mode."
                 )
-
-            if next_bar is None:
-                break
 
             self._bar_queue.append(
                 next_bar
             )
 
-    # -------------------------------------------------------------
-    # Advance to next bar
-    # -------------------------------------------------------------
+    # =============================================================
+    # Bar advancement
+    # =============================================================
 
-    def _advance_bar(self) -> bool:
+    def _advance_natural(
+        self,
+    ) -> bool:
         """
-        Move playback to the next queued bar.
+        Move normally into the next queued bar.
 
-        Returns False when no more audio is available.
+        No audio overlap occurs.
         """
 
         self._fill_bar_queue()
@@ -301,7 +326,9 @@ class LiveMusicPlayer:
         if not self._bar_queue:
             return False
 
-        next_bar = self._bar_queue.popleft()
+        next_bar = int(
+            self._bar_queue.popleft()
+        )
 
         self._current_bar = next_bar
 
@@ -317,9 +344,45 @@ class LiveMusicPlayer:
 
         return True
 
-    # -------------------------------------------------------------
+    def _complete_crossfade(
+        self,
+        next_bar: int,
+        consumed_samples: int,
+    ) -> None:
+        """
+        After an artificial crossfade, the beginning of next_bar has
+        already been heard as part of the overlap.
+
+        Therefore playback of next_bar resumes AFTER those consumed
+        samples rather than replaying them.
+        """
+
+        queued_bar = int(
+            self._bar_queue.popleft()
+        )
+
+        if queued_bar != next_bar:
+            raise RuntimeError(
+                "Playback queue became inconsistent."
+            )
+
+        self._current_bar = next_bar
+
+        self._current_audio = (
+            self._get_bar_audio(
+                next_bar
+            )
+        )
+
+        self._current_position = (
+            consumed_samples
+        )
+
+        self._fill_bar_queue()
+
+    # =============================================================
     # Audio callback
-    # -------------------------------------------------------------
+    # =============================================================
 
     def _audio_callback(
         self,
@@ -329,9 +392,17 @@ class LiveMusicPlayer:
         status,
     ):
         """
-        Fill the audio device's requested output buffer.
+        Supply audio continuously to sounddevice.
 
-        A single callback may cross one or several bar boundaries.
+        Natural transition:
+            ... AAAAA | BBBBB ...
+
+        Artificial transition:
+            ... AAAAA
+                    XXXXX
+                    BBBBB ...
+
+        where XXXXX is a 10 ms equal-power overlap.
         """
 
         outdata.fill(0)
@@ -343,73 +414,326 @@ class LiveMusicPlayer:
 
         while output_position < frames:
 
-            # -----------------------------------------------------
-            # Ensure a current bar exists.
-            # -----------------------------------------------------
-
             if self._current_audio is None:
 
-                if not self._advance_bar():
+                if not self._advance_natural():
+
                     self._running = False
                     raise sd.CallbackStop
+
+            # -----------------------------------------------------
+            # Make sure we know what comes next.
+            # -----------------------------------------------------
+
+            self._fill_bar_queue()
+
+            next_bar = (
+                int(self._bar_queue[0])
+                if self._bar_queue
+                else None
+            )
+
+            # -----------------------------------------------------
+            # Determine whether this boundary is artificial.
+            # -----------------------------------------------------
+
+            artificial = (
+                next_bar is not None
+                and self.crossfade_samples > 0
+                and self._is_artificial_transition(
+                    self._current_bar,
+                    next_bar,
+                )
+            )
+
+            # =====================================================
+            # ARTIFICIAL TRANSITION
+            # =====================================================
+
+            if artificial:
+
+                next_audio = (
+                    self._get_bar_audio(
+                        next_bar
+                    )
+                )
+
+                fade_samples = min(
+                    self.crossfade_samples,
+                    len(self._current_audio),
+                    len(next_audio),
+                )
+
+                crossfade_start = (
+                    len(self._current_audio)
+                    - fade_samples
+                )
+
+                # -------------------------------------------------
+                # First play ordinary source audio until the
+                # beginning of the crossfade region.
+                # -------------------------------------------------
+
+                if (
+                    self._current_position
+                    < crossfade_start
+                ):
+
+                    available = (
+                        crossfade_start
+                        - self._current_position
+                    )
+
+                    needed = (
+                        frames
+                        - output_position
+                    )
+
+                    count = min(
+                        available,
+                        needed,
+                    )
+
+                    source_end = (
+                        self._current_position
+                        + count
+                    )
+
+                    output_end = (
+                        output_position
+                        + count
+                    )
+
+                    outdata[
+                        output_position:output_end
+                    ] = self._current_audio[
+                        self._current_position:
+                        source_end
+                    ]
+
+                    self._current_position = (
+                        source_end
+                    )
+
+                    output_position = (
+                        output_end
+                    )
+
+                    continue
+
+                # -------------------------------------------------
+                # We are now inside the crossfade region.
+                # -------------------------------------------------
+
+                crossfade_position = (
+                    self._current_position
+                    - crossfade_start
+                )
+
+                remaining_crossfade = (
+                    fade_samples
+                    - crossfade_position
+                )
+
+                needed = (
+                    frames
+                    - output_position
+                )
+
+                count = min(
+                    remaining_crossfade,
+                    needed,
+                )
+
+                fade_start = (
+                    crossfade_position
+                )
+
+                fade_end = (
+                    fade_start
+                    + count
+                )
+
+                source_start = (
+                    crossfade_start
+                    + crossfade_position
+                )
+
+                source_end = (
+                    source_start
+                    + count
+                )
+
+                outgoing = (
+                    self._current_audio[
+                        source_start:
+                        source_end
+                    ]
+                )
+
+                incoming = (
+                    next_audio[
+                        fade_start:
+                        fade_end
+                    ]
+                )
+
+                # Fade arrays were created for the requested
+                # crossfade length. If a tiny bar ever forces a
+                # shorter fade, create local curves for it.
+                if (
+                    fade_samples
+                    == self.crossfade_samples
+                ):
+
+                    fade_out = (
+                        self.fade_out[
+                            fade_start:
+                            fade_end
+                        ]
+                    )
+
+                    fade_in = (
+                        self.fade_in[
+                            fade_start:
+                            fade_end
+                        ]
+                    )
+
+                else:
+
+                    theta = np.linspace(
+                        0.0,
+                        np.pi / 2.0,
+                        fade_samples,
+                        endpoint=True,
+                        dtype=np.float32,
+                    )
+
+                    fade_out = (
+                        np.cos(theta)[
+                            fade_start:
+                            fade_end
+                        ][:, None]
+                    )
+
+                    fade_in = (
+                        np.sin(theta)[
+                            fade_start:
+                            fade_end
+                        ][:, None]
+                    )
+
+                overlap = (
+                    outgoing * fade_out
+                    + incoming * fade_in
+                )
+
+                output_end = (
+                    output_position
+                    + count
+                )
+
+                outdata[
+                    output_position:
+                    output_end
+                ] = overlap
+
+                self._current_position += (
+                    count
+                )
+
+                output_position = (
+                    output_end
+                )
+
+                # -------------------------------------------------
+                # Crossfade finished.
+                #
+                # The first `fade_samples` samples of next_bar have
+                # already been played inside the overlap.
+                # -------------------------------------------------
+
+                if (
+                    self._current_position
+                    >= len(self._current_audio)
+                ):
+
+                    self._complete_crossfade(
+                        next_bar=next_bar,
+                        consumed_samples=fade_samples,
+                    )
+
+                continue
+
+            # =====================================================
+            # NATURAL TRANSITION
+            # =====================================================
 
             remaining_in_bar = (
                 len(self._current_audio)
                 - self._current_position
             )
 
-            remaining_in_output = (
+            remaining_output = (
                 frames
                 - output_position
             )
 
-            samples_to_copy = min(
+            count = min(
                 remaining_in_bar,
-                remaining_in_output,
-            )
-
-            source_start = (
-                self._current_position
+                remaining_output,
             )
 
             source_end = (
-                source_start
-                + samples_to_copy
+                self._current_position
+                + count
             )
 
             output_end = (
                 output_position
-                + samples_to_copy
+                + count
             )
 
             outdata[
-                output_position:output_end
+                output_position:
+                output_end
             ] = self._current_audio[
-                source_start:source_end
+                self._current_position:
+                source_end
             ]
 
-            self._current_position += (
-                samples_to_copy
+            self._current_position = (
+                source_end
             )
 
-            output_position += (
-                samples_to_copy
+            output_position = (
+                output_end
             )
 
             # -----------------------------------------------------
-            # Current bar finished.
+            # Natural bar completed.
             # -----------------------------------------------------
 
             if (
                 self._current_position
                 >= len(self._current_audio)
             ):
-                self._current_audio = None
-                self._current_position = 0
 
-    # -------------------------------------------------------------
-    # Stream lifecycle
-    # -------------------------------------------------------------
+                if not self._advance_natural():
+
+                    self._running = False
+
+                    if output_position < frames:
+                        outdata[
+                            output_position:
+                        ].fill(0)
+
+                    raise sd.CallbackStop
+
+    # =============================================================
+    # Stream
+    # =============================================================
 
     def _start_stream(self) -> None:
 
@@ -430,45 +754,14 @@ class LiveMusicPlayer:
 
         self._stream.start()
 
-    def stop(self) -> None:
-        """
-        Stop playback immediately.
-
-        Graceful fade-out will be added in Step 10.
-        """
-
-        self._running = False
-
-        if self._stream is not None:
-
-            self._stream.stop()
-            self._stream.close()
-
-            self._stream = None
-
-        self._current_audio = None
-        self._current_position = 0
-
-        self._bar_queue.clear()
-
-    # -------------------------------------------------------------
-    # Step 8A
-    # -------------------------------------------------------------
+    # =============================================================
+    # Predetermined sequence
+    # =============================================================
 
     def play_sequence(
         self,
         sequence: Iterable[int],
     ) -> None:
-        """
-        Play a predetermined sequence of bars.
-
-        This is Step 8A and is useful for validating the real-time
-        playback engine independently of stochastic navigation.
-
-        Example:
-
-            [74, 75, 76, 146, 147, 148]
-        """
 
         sequence = [
             int(bar)
@@ -484,45 +777,51 @@ class LiveMusicPlayer:
 
             if not 0 <= bar < self.n_bars:
                 raise ValueError(
-                    f"Invalid bar in sequence: {bar}"
+                    f"Invalid bar: {bar}"
                 )
+
+        self.stop()
 
         self._mode = "sequence"
 
         self._sequence = sequence
-        self._sequence_position = 0
+        self._sequence_position = 1
 
         self._bar_queue.clear()
 
-        self._current_bar = None
-        self._current_audio = None
+        self._current_bar = (
+            sequence[0]
+        )
+
+        self._current_audio = (
+            self._get_bar_audio(
+                self._current_bar
+            )
+        )
+
         self._current_position = 0
 
         self._fill_bar_queue()
 
         self._start_stream()
 
-    # -------------------------------------------------------------
-    # Step 8B
-    # -------------------------------------------------------------
+    # =============================================================
+    # Navigator-driven playback
+    # =============================================================
 
     def start(
         self,
         start_bar: int = 0,
     ) -> None:
-        """
-        Start indefinite graph-driven playback.
-
-        The supplied start bar is played first. Subsequent bars are
-        selected by MusicNavigator.
-        """
 
         if self.navigator is None:
             raise RuntimeError(
                 "start() requires a MusicNavigator."
             )
 
-        start_bar = int(start_bar)
+        start_bar = int(
+            start_bar
+        )
 
         if not 0 <= start_bar < self.n_bars:
             raise ValueError(
@@ -533,15 +832,21 @@ class LiveMusicPlayer:
             start_bar
         ):
             raise ValueError(
-                f"Bar {start_bar} is not inside the "
+                f"Bar {start_bar} is outside the "
                 "non-terminating graph region."
             )
+
+        self.stop()
 
         self._mode = "navigator"
 
         self._bar_queue.clear()
 
-        self._current_bar = start_bar
+        self.navigator.reset()
+
+        self._current_bar = (
+            start_bar
+        )
 
         self._current_audio = (
             self._get_bar_audio(
@@ -551,15 +856,40 @@ class LiveMusicPlayer:
 
         self._current_position = 0
 
-        self.navigator.reset()
-
         self._fill_bar_queue()
 
         self._start_stream()
 
-    # -------------------------------------------------------------
+    # =============================================================
+    # Stop
+    # =============================================================
+
+    def stop(self) -> None:
+        """
+        Immediate stop.
+
+        Graceful musical fade-out remains a later playback-control
+        feature rather than transition rendering.
+        """
+
+        self._running = False
+
+        if self._stream is not None:
+
+            self._stream.stop()
+            self._stream.close()
+
+            self._stream = None
+
+        self._bar_queue.clear()
+
+        self._current_bar = None
+        self._current_audio = None
+        self._current_position = 0
+
+    # =============================================================
     # Diagnostics
-    # -------------------------------------------------------------
+    # =============================================================
 
     @property
     def is_playing(self) -> bool:
