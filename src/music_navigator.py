@@ -444,64 +444,57 @@ class MusicNavigator:
         self,
         current_bar: int,
     ) -> list[dict[str, Any]]:
-        """
-        Return the currently available edges and their normalized
-        traversal probabilities.
 
-        Useful for diagnostics and simulation.
-        """
-
-        edges = self.get_safe_edges(
-            current_bar
-        )
+        edges = self.get_safe_edges(current_bar)
 
         if not edges:
             raise RuntimeError(
                 f"Bar {current_bar} has no safe outgoing edges."
             )
 
-        weights = np.asarray(
-            [
-                self._edge_weight(edge)
+        natural_edges = [
+            edge for edge in edges
+            if edge["type"] == "natural"
+        ]
+
+        transition_edges = [
+            edge for edge in edges
+            if edge["type"] == "transition"
+        ]
+
+        # Only one possible route.
+        if len(edges) == 1:
+            probabilities = [1.0]
+
+        # Natural + alternatives:
+        # natural gets 95%, alternatives share 5% equally.
+        elif natural_edges and transition_edges:
+            alt_probability = 0.05 / len(transition_edges)
+
+            probabilities = [
+                0.95 if edge["type"] == "natural"
+                else alt_probability
                 for edge in edges
-            ],
-            dtype=np.float64,
-        )
+            ]
 
-        # ---------------------------------------------------------
-        # If recency penalties somehow reduce all weights to zero,
-        # fall back to base weights.
-        # ---------------------------------------------------------
+        # No safe natural route:
+        # alternatives share 100% equally.
+        else:
+            probabilities = [
+                1.0 / len(edges)
+                for _ in edges
+            ]
 
-        if np.sum(weights) <= 0:
-
-            weights = np.asarray(
-                [
-                    self._base_edge_weight(edge)
-                    for edge in edges
-                ],
-                dtype=np.float64,
-            )
-
-        probabilities = (
-            weights / np.sum(weights)
-        )
-
-        result = []
-
-        for edge, weight, probability in zip(
-            edges,
-            weights,
-            probabilities,
-        ):
-
-            result.append({
+        return [
+            {
                 **edge,
-                "weight": float(weight),
                 "probability": float(probability),
-            })
-
-        return result
+            }
+            for edge, probability in zip(
+                edges,
+                probabilities,
+            )
+        ]
 
     def choose_next(
         self,
