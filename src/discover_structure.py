@@ -5,11 +5,14 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import StandardScaler
 
 
-CHROMA_SLICE = slice(0, 48)
-MFCC_SLICE = slice(48, 100)
-RMS_SLICE = slice(100, 104)
-CENTROID_SLICE = slice(104, 108)
-ONSET_SLICE = slice(108, 112)
+from .feature_layout import (
+    CENTROID_SLICE,
+    CHROMA_SLICE,
+    MFCC_SLICE,
+    N_BAR_FEATURES,
+    ONSET_SLICE,
+    RMS_SLICE,
+)
 
 
 def cosine_similarity_01(X: np.ndarray) -> np.ndarray:
@@ -40,9 +43,9 @@ def discover_structure(
     if bar_features.ndim != 2:
         raise ValueError("bar_features must be a 2D array.")
 
-    if bar_features.shape[1] != 112:
+    if bar_features.shape[1] != N_BAR_FEATURES:
         raise ValueError(
-            "Expected bar_features.shape[1] == 112, "
+            f"Expected bar_features.shape[1] == {N_BAR_FEATURES}, "
             f"got {bar_features.shape[1]}."
         )
 
