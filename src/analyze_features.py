@@ -1,7 +1,5 @@
-# feature_analysis.py
-
-import numpy as np
 import librosa
+import numpy as np
 
 
 def analyze_features(
@@ -11,61 +9,15 @@ def analyze_features(
     hop_length: int = 512,
     n_mfcc: int = 13,
 ) -> np.ndarray:
-    """
-    Extract one beat-synchronous feature vector for each complete bar.
+    """Extract beat-synchronous features from mono audio for complete 4/4 bars.
 
-    Each 4/4 bar is represented by features extracted independently
-    from beats 1, 2, 3, and 4, preserving the internal evolution of
-    the music across the bar.
-
-    Feature vector per bar:
-        Chroma:             4 × 12
-        MFCC:               4 × n_mfcc
-        RMS:                4 × 1
-        Spectral centroid:  4 × 1
-        Onset strength:     4 × 1
-
-    With n_mfcc=13, each bar has 112 features.
-
-    Parameters
-    ----------
-    analysis_audio : np.ndarray
-        Mono audio signal used for analysis.
-
-    sr : int
-        Sampling rate of the audio.
-
-    timing : dict
-        Output from analyze_timing(). Must contain ``"beats"``,
-        where each row is:
-
-            [timestamp_seconds, beat_position_in_bar]
-
-    hop_length : int, default=512
-        Hop length used for frame-level feature extraction.
-
-    n_mfcc : int, default=13
-        Number of MFCC coefficients.
-
-    Returns
-    -------
-    np.ndarray
-        Feature matrix with shape:
-
-            (n_complete_bars, feature_dimension)
-
-        With the default settings:
-
-            (n_complete_bars, 112)
-
-        Row i is the feature vector z_i for bar i.
+    Return a float32 array of shape (n_complete_bars, 60 + 4 * n_mfcc).
+    Each row stores four beats per family, ordered as chroma (48),
+    MFCC (4 * n_mfcc), RMS (4), spectral centroid (4), and onset strength
+    (4). The default n_mfcc=13 produces 112 features per bar.
     """
 
     beats = np.asarray(timing["beats"])
-
-    # -------------------------------------------------------------
-    # Frame-level features
-    # -------------------------------------------------------------
 
     chroma_frame = librosa.feature.chroma_cqt(
         y=analysis_audio,
@@ -103,10 +55,6 @@ def analyze_features(
         hop_length=hop_length,
     )
 
-    # -------------------------------------------------------------
-    # Beat-level aggregation
-    # -------------------------------------------------------------
-
     beat_features = []
 
     for i in range(len(beats) - 1):
@@ -114,10 +62,7 @@ def analyze_features(
         end = beats[i + 1, 0]
         beat_position = int(beats[i, 1])
 
-        mask = (
-            (frame_times >= start)
-            & (frame_times < end)
-        )
+        mask = (frame_times >= start) & (frame_times < end)
 
         if not np.any(mask):
             continue
@@ -125,102 +70,37 @@ def analyze_features(
         beat_features.append({
             "beat_position": beat_position,
 
-            "chroma": np.mean(
-                chroma_frame[:, mask],
-                axis=1,
-            ),
-
-            "mfcc": np.mean(
-                mfcc_frame[:, mask],
-                axis=1,
-            ),
-
-            "rms": float(
-                np.mean(rms_frame[:, mask])
-            ),
-
-            "spectral_centroid": float(
-                np.mean(centroid_frame[:, mask])
-            ),
-
-            "onset_strength": float(
-                np.mean(onset_frame[mask])
-            ),
+            "chroma": np.mean(chroma_frame[:, mask], axis=1),
+            "mfcc": np.mean(mfcc_frame[:, mask], axis=1),
+            "rms": float(np.mean(rms_frame[:, mask])),
+            "spectral_centroid": float(np.mean(centroid_frame[:, mask])),
+            "onset_strength": float(np.mean(onset_frame[mask])),
         })
 
-    # -------------------------------------------------------------
-    # Group beats into complete 4/4 bars
-    # -------------------------------------------------------------
-
     bar_vectors = []
-
     i = 0
 
     while i <= len(beat_features) - 4:
         group = beat_features[i:i + 4]
 
-        positions = [
-            beat["beat_position"]
-            for beat in group
-        ]
+        positions = [beat["beat_position"] for beat in group]
 
         if positions != [1, 2, 3, 4]:
             i += 1
             continue
 
         # Preserve beat order within each feature family.
-        chroma = np.concatenate([
-            beat["chroma"]
-            for beat in group
-        ])
+        chroma = np.concatenate([beat["chroma"] for beat in group])
+        mfcc = np.concatenate([beat["mfcc"] for beat in group])
+        rms = np.array([beat["rms"] for beat in group])
+        centroid = np.array([beat["spectral_centroid"] for beat in group])
+        onset = np.array([beat["onset_strength"] for beat in group])
 
-        mfcc = np.concatenate([
-            beat["mfcc"]
-            for beat in group
-        ])
-
-        rms = np.array([
-            beat["rms"]
-            for beat in group
-        ])
-
-        centroid = np.array([
-            beat["spectral_centroid"]
-            for beat in group
-        ])
-
-        onset = np.array([
-            beat["onset_strength"]
-            for beat in group
-        ])
-
-        feature_vector = np.concatenate([
-            chroma,
-            mfcc,
-            rms,
-            centroid,
-            onset,
-        ])
-
-        bar_vectors.append(feature_vector)
+        bar_vectors.append(np.concatenate([chroma, mfcc, rms, centroid, onset]))
 
         i += 4
 
     if not bar_vectors:
-        feature_dimension = (
-            4 * 12
-            + 4 * n_mfcc
-            + 4
-            + 4
-            + 4
-        )
+        return np.empty((0, 60 + 4 * n_mfcc), dtype=np.float32)
 
-        return np.empty(
-            (0, feature_dimension),
-            dtype=np.float32,
-        )
-
-    return np.asarray(
-        bar_vectors,
-        dtype=np.float32,
-    )
+    return np.asarray(bar_vectors, dtype=np.float32)
