@@ -12,5 +12,5 @@
     "noUnusedParameters": true,
     "types": ["node"]
   },
-  "include": ["app/main", "electron.vite.config.ts"]
+  "include": ["app/main", "app/preload", "forge.config.ts", "vite.*.config.ts"]
 }

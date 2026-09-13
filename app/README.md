@@ -1,25 +1,32 @@
 # Desktop App
 
-Electron + React + TypeScript, built with electron-vite. Desktop code lives
+Electron + React + TypeScript, built with Electron Forge's Vite plugin. Desktop code lives
 here; the Python analysis pipeline remains in `src/` and is not connected yet.
 
 Use Node.js 24 (`nvm use` when using nvm), then:
 
 ```sh
 npm ci
-npm run dev
+npm start
 ```
 
-`npm run dev` opens Electron with React hot reload. `npm run typecheck`
-checks both main-process and renderer code. `npm run build` checks types
-and writes the production app to `out/`; `npm start` opens that build.
-These commands do not create distributable installers yet.
+`npm start` (or `npm run dev`) opens Electron with React hot reload.
+`npm run typecheck` checks main, preload, renderer, and build configuration.
+`npm run build` checks types and packages the production app in `out/`.
+`npm run package` packages without type-checking; `npm run make` builds
+distributables in `out/make/`: ZIP archives on Windows, macOS, and Linux,
+plus a Squirrel installer on Windows. Build each platform on its own OS;
+code signing and macOS notarization are not configured yet.
+The ZIP maker requires the system `zip` command on Linux/macOS (on Debian
+or Ubuntu, install it with `sudo apt-get install zip`).
 
 The install step downloads Electron's platform-specific runtime. Python
 3.9.25 and its virtual environment are independent of this tooling.
 
-The renderer has no Node access or preload bridge. electron-vite's missing
-preload warning is expected until an application API is needed.
+The renderer has no Node access. The sandboxed preload entry exposes no
+APIs yet and is reserved for the future application bridge. Vite output
+lives in `.vite/`; packaged applications contain only the built app and
+runtime dependencies, not the Python pipeline or local music.
 
 ## Soundboard
 

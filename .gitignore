@@ -8,5 +8,6 @@ test.ipynb
 **/__pycache__/
 
 node_modules/
+.vite/
 out/
 *.tsbuildinfo
