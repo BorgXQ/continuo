@@ -1,4 +1,12 @@
 .venv/
 data/
 
+project_idea.md
+analysis.ipynb
+test.ipynb
+
 **/__pycache__/
+
+node_modules/
+out/
+*.tsbuildinfo
