@@ -1,0 +1,37 @@
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('../../assets/fonts/ibm-plex-mono/IBMPlexMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('../../assets/fonts/ibm-plex-mono/IBMPlexMono-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-display: swap;
+}
+
+:root {
+  font-family: 'IBM Plex Mono', monospace;
+  color: #eeeeee;
+  background: #111111;
+  font-synthesis: none;
+  letter-spacing: 0;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { padding: 24px; }
+header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid #a7a7a7;
+}
+h1 { margin: 0 0 8px; font-size: 40px; font-weight: 600; }
+p { margin: 4px 0; }
+.credits { margin-left: auto; text-align: right; color: #bcbcbc; }
