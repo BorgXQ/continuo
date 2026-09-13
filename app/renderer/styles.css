@@ -22,16 +22,117 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; }
-main { padding: 24px; }
+button, input { font: inherit; }
+button { color: inherit; cursor: pointer; }
+button { border: 0; background: none; }
+button:disabled { cursor: default; opacity: .35; }
+button:focus-visible, input:focus-visible { outline: 2px solid #8bbde8; outline-offset: 4px; }
+button, input { -webkit-tap-highlight-color: transparent; }
+main { padding: 24px; display: flex; flex-direction: column; gap: 32px; min-height: 100dvh; height: 100dvh; }
 header {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 24px;
-  padding: 24px;
+  padding: 20px 24px;
   border: 1px solid #a7a7a7;
+  flex-shrink: 0;
 }
 h1 { margin: 0 0 8px; font-size: 40px; font-weight: 600; }
 p { margin: 4px 0; }
 .credits { margin-left: auto; text-align: right; color: #bcbcbc; }
+
+.panel { position: relative; border: 1px solid #909792; min-width: 0; }
+.panel-title { position: absolute; top: -14px; left: 12px; margin: 0; padding: 0 8px; background: #111111; font-size: 18px; font-weight: 400; line-height: 26px; z-index: 1; }
+.panel-title button { display: flex; align-items: center; gap: 8px; padding: 0; }
+.panel-title button:hover { color: #a3d3b1; }
+.count { color: #6b9477; font-size: 12px; }
+.now-playing { flex-shrink: 0; padding: 20px; }
+.playing-list { max-height: 146px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #505a52 transparent; }
+.expanded .playing-list { max-height: min(38dvh, 350px); }
+.playing-row { display: grid; grid-template-columns: minmax(130px, .8fr) minmax(220px, 1.7fr) minmax(185px, .9fr); gap: 24px; padding: 8px 0; min-height: 124px; }
+.playing-row + .playing-row { border-top: 1px solid #343b36; padding-top: 20px; margin-top: 12px; }
+.spectrum { display: block; width: 100%; height: 96px; align-self: center; }
+.track-metadata { border-left: 1px dashed #505952; border-right: 1px dashed #505952; padding: 0 24px; display: grid; grid-template-columns: 65px minmax(0, 1fr); gap: 8px 12px; text-align: left; align-content: center; font-size: 14px; }
+button.track-metadata:hover { background: #171c18; }
+.metadata-label { color: #919a94; }
+.metadata-label::after { content: ':'; float: right; }
+.track-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.status { color: #75d995; }
+.track-controls { display: flex; flex-direction: column; justify-content: center; gap: 12px; padding-right: 6px; font-size: 13px; }
+.track-controls label { display: flex; justify-content: space-between; }
+.track-controls output { min-width: 4ch; text-align: right; }
+input[type='range'] { accent-color: #73cc90; width: 100%; height: 16px; margin: 0; cursor: pointer; }
+input:disabled { cursor: default; }
+.stop-button { align-self: flex-end; display: flex; gap: 8px; align-items: center; padding: 4px 0; color: #bbc4be; }
+.stop-button:hover:not(:disabled) { color: #fff; }
+.empty-playing { color: #79817c; }
+.soundtracks { flex: 1; min-height: 280px; padding: 25px 18px 26px; display: flex; flex-direction: column; }
+.track-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(66px, 1fr)); gap: 14px; height: 100%; overflow-y: auto; scrollbar-width: thin; }
+.track-tile { position: relative; min-width: 0; border: 1px solid #939b95; background: #171918; transition: background .12s, border-color .12s; }
+.track-tile.empty { border-style: dashed; border-color: #58645e; background: transparent; }
+.track-tile:hover { background: #202621; border-color: #c4d0c7; }
+.track-tile.empty:hover { border-color: #8bbde8; background: #151c22; }
+.track-tile.playing { background: #163421; border-color: #6ecb88; color: #83e09f; box-shadow: inset 0 0 0 3px #111b15; }
+.track-tile.drop-target { outline: 2px solid #8bbde8; outline-offset: -4px; background: #1e2b36; }
+.track-tile.dragging { opacity: .4; }
+.tile-play, .add-track { width: 100%; height: 100%; min-height: 64px; padding: 14px 18px 14px 48px; display: flex; justify-content: center; align-items: center; font-size: 14px; }
+.tile-name { overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.add-track { padding: 14px; gap: 10px; color: #8bbde8; }
+.loop-button { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 28px; height: 32px; padding: 4px; color: #98a69b; }
+.loop-button:hover { color: #eef7f0; }
+.playing .loop-button { color: #83e09f; }
+.loop-off { position: relative; display: block; width: 19px; height: 19px; }
+.loop-off svg { position: absolute; inset: 0; }
+.pagination { position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; max-width: calc(100% - 32px); background: #111111; padding: 0 8px; }
+.page-numbers { display: flex; overflow-x: auto; scrollbar-width: thin; }
+.pagination button { flex-shrink: 0; width: 30px; height: 30px; color: #7e8981; font-size: 13px; }
+.pagination button[aria-current='page'] { color: #88d5a0; border-bottom: 1px solid #88d5a0; }
+.pagination button:hover:not(:disabled) { color: #fff; }
+.icon-button { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; flex-shrink: 0; }
+.context-menu { position: fixed; z-index: 5; width: 230px; background: #1c211e; padding: 6px; border: 1px solid #69766b; box-shadow: 0 8px 30px #0008; }
+.context-menu button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px; text-align: left; font-size: 13px; }
+.context-menu button:hover:not(:disabled), .context-menu button:focus-visible { background: #2c3830; }
+.danger { color: #f19999; }
+dialog { background: #171c19; color: #e4eae6; border: 1px solid #879b8c; padding: 24px; width: min(460px, calc(100% - 32px)); }
+dialog::backdrop { background: #000a; }
+.dialog-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 24px; }
+.dialog-heading h2 { font-size: 18px; font-weight: 400; margin: 0; }
+dialog p { font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.dialog-field { display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+.dialog-field input { width: 100%; padding: 12px; border: 1px solid #606f64; border-radius: 0; background: #111; color: #e4eae6; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+.dialog-actions button { padding: 8px 14px; border: 1px solid #506157; font-size: 13px; }
+.dialog-actions .primary { color: #91e0ab; border-color: #669376; }
+.error { color: #f19999; }
+.toast { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); display: flex; align-items: center; gap: 20px; padding: 14px 18px; border: 1px solid #b47e73; background: #261e1c; font-size: 13px; z-index: 10; }
+.toast span { overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  main { padding: 18px; gap: 28px; }
+  header { padding: 16px 20px; }
+  h1 { font-size: 32px; }
+  header p { font-size: 12px; }
+  .playing-row { gap: 14px; grid-template-columns: minmax(100px, .7fr) minmax(200px, 1.5fr) minmax(140px, .8fr); }
+  .track-metadata { padding: 0 14px; gap: 8px; font-size: 12px; grid-template-columns: 55px minmax(0, 1fr); }
+  .track-grid { gap: 10px; }
+  .tile-play, .add-track { font-size: 12px; }
+}
+@media (max-width: 600px) {
+  main { height: auto; min-height: 100dvh; padding: 16px; }
+  header { gap: 12px; padding: 16px; }
+  h1 { font-size: 28px; }
+  .credits { font-size: 11px; }
+  .panel-title { font-size: 15px; }
+  .now-playing { padding: 16px 12px; }
+  .playing-list { max-height: 205px; }
+  .expanded .playing-list { max-height: 350px; }
+  .playing-row { grid-template-columns: 72px minmax(0, 1fr); gap: 16px 12px; }
+  .track-metadata { border-right: 0; padding-right: 0; }
+  .spectrum { height: 78px; }
+  .track-controls { grid-column: 1 / -1; display: grid; grid-template-columns: 100px minmax(0, 1fr) 62px; align-items: center; gap: 12px; }
+  .track-controls label { font-size: 11px; gap: 6px; }
+  .stop-button { align-self: center; }
+  .soundtracks { padding: 24px 12px; min-height: 400px; }
+  .track-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(8, 78px); overflow: visible; }
+}

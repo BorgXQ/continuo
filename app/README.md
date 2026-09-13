@@ -20,3 +20,15 @@ The install step downloads Electron's platform-specific runtime. Python
 
 The renderer has no Node access or preload bridge. electron-vite's missing
 preload warning is expected until an application API is needed.
+
+## Soundboard
+
+The renderer supports local MP3 import, concurrent speaker playback,
+frequency spectra, per-track gain (0-150%), one-time playback, and normal
+looping through Web Audio. Tiles can be renamed, swapped across pages,
+deleted, and assigned single-key shortcuts while the app has focus.
+
+The library is session-only: closing or reloading the app clears imported
+tracks and settings. Original MP3s are not modified or copied into storage.
+Analysis and procedural looping remain unavailable until the Python backend
+is connected. No database or Discord integration is included.
