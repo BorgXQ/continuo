@@ -14,6 +14,10 @@
 
 Continuo plays local MP3s and finds alternative transitions within each track, letting your soundtrack continue while you focus on the game.
 
+<p align="center">
+  <img src="assets/Continuo-v1.0.0_screen.png" alt="Continuo v1.0.0 desktop application">
+</p>
+
 ## Install
 
 Continuo v1.0.0 targets **Windows x64**. Published installers are available from [GitHub Releases](https://github.com/BorgXQ/continuo/releases). Once the v1.0.0 release is published, download its Setup `.exe`, run it, and open Continuo.
