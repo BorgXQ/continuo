@@ -7,11 +7,12 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     executableName: 'continuo',
-    extraResource: ['assets/fonts/ibm-plex-mono/LICENSE.txt', 'src', 'requirements.txt'],
+    icon: process.platform === 'win32' ? 'assets/logo_white.ico' : process.platform === 'linux' ? 'assets/logo_white.png' : undefined,
+    extraResource: ['assets/fonts/ibm-plex-mono/LICENSE.txt', 'assets/logo_white.png', 'assets/logo_white.ico', 'src', 'requirements.txt'],
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({}),
+    new MakerSquirrel({ setupIcon: 'assets/logo_white.ico' }),
     new MakerZIP({}, ['win32', 'darwin', 'linux']),
   ],
   plugins: [

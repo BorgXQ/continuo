@@ -11,6 +11,7 @@ function createWindow(): void {
     minWidth: 800,
     minHeight: 600,
     title: 'Continuo',
+    icon: join(app.isPackaged ? process.resourcesPath : join(app.getAppPath(), 'assets'), process.platform === 'win32' ? 'logo_white.ico' : 'logo_white.png'),
     backgroundColor: '#111111',
     show: false,
     webPreferences: {

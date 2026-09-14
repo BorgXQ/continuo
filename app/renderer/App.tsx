@@ -5,6 +5,7 @@ import { NowPlaying } from './NowPlaying';
 import { Soundtracks } from './Soundtracks';
 import { useTracks } from './useTracks';
 import type { Track } from './useTracks';
+import logo from '../../assets/logo_white.png';
 
 export function App() {
   const library = useTracks();
@@ -14,7 +15,7 @@ export function App() {
     <main>
       <header>
         <div>
-          <h1 aria-label="CONTINUO">{'CONTINUO'.split('').map((letter, index) => <span key={index} aria-hidden="true">{letter}</span>)}</h1>
+          <h1 aria-label="CONTINUO"><img className="brand-logo" src={logo} alt="" />{'CONTINUO'.split('').map((letter, index) => <span key={index} aria-hidden="true">{letter}</span>)}</h1>
           <p>Real-time Adaptive Music Looper</p>
         </div>
         <div className="credits">

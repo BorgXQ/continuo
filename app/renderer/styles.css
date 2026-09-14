@@ -39,7 +39,8 @@ header {
   border: 1px solid #a7a7a7;
   flex-shrink: 0;
 }
-h1 { display: flex; gap: 0.2em; margin: 0 0 8px; font-size: 40px; font-weight: 600; }
+h1 { display: flex; align-items: center; gap: 0.2em; margin: 0 0 8px; font-size: 40px; font-weight: 600; }
+.brand-logo { width: 1em; height: 1em; object-fit: contain; flex-shrink: 0; margin-right: 0.2em; }
 p { margin: 4px 0; }
 .credits { margin-left: auto; text-align: right; color: #bcbcbc; }
 .credits .settings-button { display: flex; justify-content: flex-end; padding: 0; margin-left: auto; color: #98a69b; }
