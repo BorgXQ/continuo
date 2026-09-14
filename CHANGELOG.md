@@ -12,7 +12,7 @@ Initial local-playback release for Windows x64.
 - One-time, normal loop, and procedural loop playback modes.
 - Track analysis with queued jobs and cancellation.
 - CPU-based Beat This! small0 analysis with four-beat DBN postprocessing.
-- Musically informed procedural transitions with 10 ms crossfades.
+- Musically informed procedural transitions with configurable equal-power crossfades, defaulting to 100 ms.
 - Position-preserving playback mode changes.
 - Simultaneous playback with per-track volume from 0 to 150%.
 - Expandable NOW PLAYING view ordered by the most recent playback or selection.
