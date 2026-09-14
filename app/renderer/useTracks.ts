@@ -130,8 +130,8 @@ export function useTracks() {
     const gain = ctx.createGain();
     gain.gain.value = track.volume / 100;
     const analyser = ctx.createAnalyser();
-    analyser.fftSize = 256;
-    analyser.connect(gain).connect(ctx.destination);
+    analyser.fftSize = 8192;
+    gain.connect(analyser).connect(ctx.destination);
     let audio: PreparedAudio | undefined;
     let analysis = track.analysis;
     const token = crypto.randomUUID();
@@ -181,7 +181,7 @@ export function useTracks() {
       const [player] = await Promise.all([ready, ctx.resume()]);
       if (!current()) return;
       audio = player;
-      audio.node.connect(analyser);
+      audio.node.connect(gain);
       audio.node.onprocessorerror = () => fail('Audio processing failed.');
       audio.node.port.onmessage = event => {
         if (event.data.state === 'ended' && event.data.token === token && current()) finish(track.id);

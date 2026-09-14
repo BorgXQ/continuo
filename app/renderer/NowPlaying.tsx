@@ -9,6 +9,11 @@ function Spectrum({ session }: { session?: Playback }) {
     const element = canvas.current!;
     const ctx = element.getContext('2d')!;
     const bins = new Uint8Array(session?.analyser.frequencyBinCount ?? 128);
+    const binWidth = session ? session.analyser.context.sampleRate / session.analyser.fftSize : 1;
+    const low = Math.max(20, binWidth);
+    const high = Math.min(20000, bins.length * binWidth);
+    const edges = Array.from({ length: 25 }, (_, i) =>
+      Math.min(bins.length, Math.round(low * (high / low) ** (i / 24) / binWidth)));
     let frame = 0;
     function draw() {
       const { width, height } = element.getBoundingClientRect();
@@ -26,7 +31,12 @@ function Spectrum({ session }: { session?: Playback }) {
         session.analyser.getByteFrequencyData(bins);
         ctx.fillStyle = '#97cda5';
         for (let i = 0; i < 24; i++) {
-          const value = bins[Math.floor(i * bins.length / 24)] / 255;
+          const start = edges[i];
+          const end = Math.max(start + 1, edges[i + 1]);
+          // Preserve narrow frequency peaks while covering every bin in the band.
+          let peak = 0;
+          for (let bin = start; bin < end; bin++) peak = Math.max(peak, bins[bin]);
+          const value = peak / 255;
           const barHeight = value * (height - 8);
           ctx.fillRect(i * width / 24, height - barHeight, Math.max(2, width / 24 - 5), barHeight);
         }
