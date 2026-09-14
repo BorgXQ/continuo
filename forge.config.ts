@@ -9,7 +9,7 @@ const config: ForgeConfig = {
     asar: true,
     executableName: 'continuo',
     icon: process.platform === 'win32' ? 'assets/logo_white.ico' : process.platform === 'linux' ? 'assets/logo_white.png' : undefined,
-    extraResource: ['assets/fonts/ibm-plex-mono/LICENSE.txt', 'assets/logo_white.png', 'assets/logo_white.ico', 'src', 'requirements.txt',
+    extraResource: ['LICENSE', 'NOTICE', 'assets/fonts/ibm-plex-mono/LICENSE.txt', 'assets/logo_white.png', 'assets/logo_white.ico', 'src', 'requirements.txt',
       ...(process.platform === 'win32' ? ['dist/continuo-analysis'] : [])],
   },
   rebuildConfig: {},

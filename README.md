@@ -110,6 +110,16 @@ For backend bundling, installer commands, and the release checklist, see
 [Building for Windows](docs/windows-release.md). These instructions are for
 developers, not end users.
 
+## License
+
+Copyright (c) 2026 BorgXQ. Continuo's original source code is licensed under
+the **GNU General Public License v3.0 only** (`GPL-3.0-only`). See [LICENSE](LICENSE)
+and [NOTICE](NOTICE). Continuo is provided without warranty.
+
+When distributing covered binaries or modified versions, comply with GPLv3's
+corresponding-source requirements. The source and build instructions provided
+with a release must match its binary.
+
 ## Third-Party Assets
 
 The interface uses IBM Plex Mono; its [font license](assets/fonts/ibm-plex-mono/LICENSE.txt) is included. Third-party code and pretrained models retain their own licenses. Beat This! code and published model weights are MIT-licensed; see the [distribution notes](docs/windows-release.md#distribution-notices) before redistributing a build.
