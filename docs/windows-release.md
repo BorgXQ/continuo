@@ -7,7 +7,6 @@ Build on Windows x64. End users should not need Python, Node, or FFmpeg.
 - Python 3.11 with the Windows Python launcher (`py`).
 - Node 24 and npm.
 - Git and Microsoft C++ Build Tools with the C++ workload and Windows SDK, for the DBN source dependency.
-- FFmpeg and FFprobe available on PATH. Use a distribution containing both executables. Static builds simplify bundling; external DLL dependencies must also be included if your build requires them.
 
 ## Build
 
@@ -19,7 +18,6 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt "pyinstaller>=6,<7"
 .\.venv\Scripts\python.exe -m pip check
-Get-Command ffmpeg.exe, ffprobe.exe
 npm run typecheck
 npm test
 .\.venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py'
@@ -44,12 +42,13 @@ The installer is under `out/make/squirrel.windows/x64/`. The backend folder is i
 - Test every playback mode, mode switching, fades, volume, and simultaneous tracks.
 - Restart and verify tracks, analysis, and settings persist; test missing files.
 - Test paths with spaces and non-ASCII characters, and uninstall/reinstall.
-- Record the working Python dependency versions and FFmpeg build for reproducibility.
+- Verify fresh analysis of varied MP3s without FFmpeg or FFprobe on PATH or in the backend bundle. Keep Electron's separate `ffmpeg.dll`.
+- Record the working Python dependency versions and Electron version for reproducibility.
 - Finalize README, CHANGELOG, dependency notices, and signing before publishing.
 
 ## Distribution Notices
 
-This build setup is not a completed license audit. Include the license notices for bundled Python packages, the runtime, and your exact FFmpeg distribution; meet any applicable source-distribution obligations before publishing.
+This build setup is not a completed license audit. Include the license notices for bundled Python packages, the runtime, and Electron's media components; meet any applicable source-distribution obligations before publishing.
 
 Beat This!'s code and published model weights are MIT-licensed. Its license is included alongside the bundled checkpoint. The authors note that some training material has separate restrictions; review their licensing statement: https://github.com/CPJKU/beat_this#license The backend includes no madmom pretrained models. The BSD license notice for madmom's DBN code is bundled alongside the checkpoint. The font license is already included in the Electron resources.
 
