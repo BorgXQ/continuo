@@ -24,6 +24,7 @@ export interface Track {
 }
 
 export interface Playback {
+  focusedAt: number;
   stopping: boolean;
   fadeOut: (seconds: number) => boolean;
   setMode: (mode: PlayMode, analysis?: AnalysisResult) => void;
@@ -93,6 +94,13 @@ export function useTracks() {
     } else finish(id);
   }
 
+  function focus(id: string) {
+    const session = sessions.current.get(id);
+    if (!session) return;
+    session.focusedAt = performance.now();
+    setPlaying(Object.fromEntries(sessions.current));
+  }
+
   function prepare(track: Track): Promise<PreparedAudio> {
     const existing = prepared.current.get(track.id);
     if (existing) return existing;
@@ -136,6 +144,7 @@ export function useTracks() {
     let analysis = track.analysis;
     const token = crypto.randomUUID();
     const session: Playback = {
+      focusedAt: performance.now(),
       stopping: false,
       fadeOut: seconds => {
         if (!audio || seconds === 0) return false;
@@ -365,5 +374,5 @@ export function useTracks() {
     };
   }, []);
 
-  return { slots, loading, settings, playing, error, setError, add, toggle, stop, update, remove, swap, analyze, cancelAnalysis, cycleMode, locate };
+  return { slots, loading, settings, playing, error, setError, add, toggle, stop, focus, update, remove, swap, analyze, cancelAnalysis, cycleMode, locate };
 }

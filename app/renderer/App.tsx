@@ -10,7 +10,8 @@ import logo from '../../assets/logo_white.png';
 export function App() {
   const library = useTracks();
   const [configurationOpen, setConfigurationOpen] = useState(false);
-  const tracks = library.slots.filter((track): track is Track => track !== null && Boolean(library.playing[track.id]));
+  const tracks = library.slots.filter((track): track is Track => track !== null && Boolean(library.playing[track.id]))
+    .sort((a, b) => library.playing[b.id].focusedAt - library.playing[a.id].focusedAt);
   return (
     <main>
       <header>
@@ -24,7 +25,7 @@ export function App() {
           <p>by BorgXQ</p>
         </div>
       </header>
-      <NowPlaying tracks={tracks} playing={library.playing} stop={library.stop} volume={(id, value) => library.update(id, { volume: value })} />
+      <NowPlaying tracks={tracks} playing={library.playing} stop={library.stop} focus={library.focus} volume={(id, value) => library.update(id, { volume: value })} />
       <Soundtracks library={library} />
       {configurationOpen && <Configuration settings={library.settings} close={() => setConfigurationOpen(false)} />}
       {library.error && <div role="alert" className="toast"><span>{library.error}</span><button className="icon-button" title="Dismiss" aria-label="Dismiss error" onClick={() => library.setError('')}><X size={18} /></button></div>}

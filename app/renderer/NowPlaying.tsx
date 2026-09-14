@@ -64,6 +64,7 @@ interface Props {
   tracks: Track[];
   playing: Record<string, Playback>;
   stop: (id: string) => void;
+  focus: (id: string) => void;
   volume: (id: string, value: number) => void;
 }
 
@@ -104,10 +105,9 @@ function VolumeControl({ track, change }: { track: Track; change: (value: number
   </>;
 }
 
-export function NowPlaying({ tracks, playing, stop, volume }: Props) {
+export function NowPlaying({ tracks, playing, stop, focus, volume }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
-  const current = tracks.find(track => track.id === selected) ?? tracks[0];
+  const current = tracks[0];
   const visible = expanded ? tracks : current ? [current] : [];
   return (
     <section className={`panel now-playing ${expanded ? 'expanded' : ''}`} aria-labelledby="now-title">
@@ -121,7 +121,7 @@ export function NowPlaying({ tracks, playing, stop, volume }: Props) {
         {visible.length ? visible.map(track => (
           <div className={`playing-row ${current?.id === track.id ? 'selected' : ''}`} key={track.id}>
             <Spectrum session={playing[track.id]} />
-            <button className="track-metadata" aria-label={`Focus ${track.name}`} title={`Focus ${track.name}`} onClick={() => { setSelected(track.id); setExpanded(false); }}>
+            <button className="track-metadata" aria-label={`Focus ${track.name}`} title={`Focus ${track.name}`} onClick={() => { focus(track.id); setExpanded(false); }}>
               <span className="metadata-label">Track</span><span className="track-name">{track.name}</span>
               <span className="metadata-label">Time</span><span><Elapsed started={playing[track.id].started} /></span>
               <span className="metadata-label">Status</span><span className="status">{playing[track.id].stopping ? 'Fading out' : MODE_LABELS[playing[track.id].mode]}</span>
