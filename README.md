@@ -16,7 +16,7 @@ Continuo plays local MP3s and finds alternative transitions within each track, l
 
 ## Install
 
-Continuo-v1.0.0 is only available for **Windows x64**. Download the one-click Setup `.exe` installer from [GitHub Releases](https://github.com/BorgXQ/continuo/releases), run it, and open Continuo.
+Continuo v1.0.0 targets **Windows x64**. Published installers are available from [GitHub Releases](https://github.com/BorgXQ/continuo/releases). Once the v1.0.0 release is published, download its Setup `.exe`, run it, and open Continuo.
 
 ## Start Playing
 
@@ -39,9 +39,9 @@ Rearrange soundboard tiles by dragging them. Right-click a track to rename it, a
 
 Click the gear icon above the version number to configure transition crossfade and global fade-in/out in **milliseconds**. All values save automatically and cannot be negative.
 
-- Transition crossfade (default: 100 ms) blends alternative jumps during proceedural loop streaming. Long durations are capped at half the shorter participating bar.
+- Transition crossfade (default: 100 ms) blends alternative jumps during procedural loop playback. Long durations are capped at half the shorter participating bar.
 - Fade-in (default: 0 ms) softens the start of playback.
-- Fade-out (default: 0 ms) softens the end of playback.
+- Fade-out (default: 0 ms) continues playback after Stop is pressed, gradually reducing it to silence. It does not automatically fade the natural end of a file.
 - Press Stop again in NOW PLAYING to end a fade-out immediately.
 - Output currently has one option: **Device output**, using the system default.
 
@@ -72,9 +72,9 @@ Analysis uses Beat This! `small0` on CPU, followed by a DBN configured for four-
 
 ## Development
 
-The desktop app uses **Electron Forge**, **React**, **TypeScript**, and **Vite**. Analysis uses **Python 3.11.9** and the packages in `requirements.txt`.
+The desktop app uses **Electron Forge**, **React**, **TypeScript**, and **Vite**. Analysis uses **Python 3.11** and the packages in `requirements.txt`.
 
-Create a virtual environment, install CPU-only PyTorch and torchaudio, then install the analysis dependencies:
+On **Linux/WSL**, create a virtual environment, install CPU-only PyTorch and torchaudio, then install the analysis dependencies. Windows developers should follow [Building for Windows](docs/windows-release.md).
 
 ```sh
 python3.11 -m venv .venv
