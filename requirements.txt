@@ -1,6 +1,6 @@
-Cython==0.29.37
 librosa==0.10.2.post1
-madmom==0.16.1
+beat-this==1.1.0
+madmom @ git+https://github.com/CPJKU/madmom.git@27f032e8947204902c675e5e341a3faf5dc86dae
 matplotlib==3.7.5
 numpy==1.23.5
 sounddevice==0.5.6
