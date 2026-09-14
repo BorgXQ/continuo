@@ -8,11 +8,13 @@ $ffprobe = (Get-Command ffprobe.exe -ErrorAction Stop).Source
 if ($LASTEXITCODE -ne 0) { throw 'Unsupported Python environment.' }
 & $python scripts/prepare_model.py
 if ($LASTEXITCODE -ne 0) { throw 'Checkpoint preparation failed.' }
+$models = (Resolve-Path 'build/models').Path
+$hooks = (Resolve-Path 'scripts/hooks').Path
 
 & $python -m PyInstaller --noconfirm --clean --onedir --console `
     --name continuo-analysis --specpath build --workpath build/pyinstaller `
     --hidden-import src.analysis_worker --collect-all beat_this --collect-all librosa `
-    --additional-hooks-dir scripts/hooks --add-data 'build/models;models' `
+    --additional-hooks-dir "$hooks" --add-data "${models};models" `
     --add-binary "${ffmpeg};." --add-binary "${ffprobe};." analysis_entry.py
 if ($LASTEXITCODE -ne 0) { throw 'Analysis backend build failed.' }
 $modelFiles = Get-ChildItem 'dist/continuo-analysis' -Recurse -File | Where-Object { $_.FullName -match '[\\/]madmom[\\/]' -and $_.Extension -in '.pkl', '.npy', '.npz', '.h5', '.hdf5', '.mat' }
