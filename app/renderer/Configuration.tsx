@@ -23,6 +23,7 @@ export function Configuration({ settings, close }: { settings: ReturnType<typeof
   return <dialog ref={dialog} onCancel={close} aria-labelledby="configuration-title">
     <div className="dialog-heading"><h2 id="configuration-title">Configuration</h2><button className="icon-button" title="Close configuration" aria-label="Close configuration" onClick={close}><X size={18} /></button></div>
     <div className="configuration-fields">
+      <Duration label="Transition crossfade" value={settings.values.crossfade} disabled={settings.loading} change={value => settings.update('crossfade', value)} />
       <Duration label="Global fade-in" value={settings.values.fadeIn} disabled={settings.loading} change={value => settings.update('fadeIn', value)} />
       <Duration label="Global fade-out" value={settings.values.fadeOut} disabled={settings.loading} change={value => settings.update('fadeOut', value)} />
       <label className="duration-field"><span>Output</span>

@@ -86,16 +86,34 @@ test('moving tiles updates positions without rewriting analysis', () => {
 test('audio settings default to zero and reject negative or non-finite durations', () => {
   const store = new LibraryStore(':memory:');
   try {
-    assert.deepEqual(store.loadSettings(), { fadeIn: 0, fadeOut: 0 });
-    store.saveSettings({ fadeIn: 1.25, fadeOut: 2.5 });
+    assert.deepEqual(store.loadSettings(), { crossfade: 0.1, fadeIn: 0, fadeOut: 0 });
+    store.saveSettings({ crossfade: 0.1, fadeIn: 1.25, fadeOut: 2.5 });
     store.save([track()]);
-    assert.deepEqual(store.loadSettings(), { fadeIn: 1.25, fadeOut: 2.5 });
+    assert.deepEqual(store.loadSettings(), { crossfade: 0.1, fadeIn: 1.25, fadeOut: 2.5 });
     for (const value of [-1, NaN, Infinity]) {
-      assert.throws(() => store.saveSettings({ fadeIn: value, fadeOut: 0 }));
-      assert.throws(() => store.saveSettings({ fadeIn: 0, fadeOut: value }));
+      assert.throws(() => store.saveSettings({ crossfade: value, fadeIn: 0, fadeOut: 0 }));
+      assert.throws(() => store.saveSettings({ crossfade: 0.1, fadeIn: value, fadeOut: 0 }));
+      assert.throws(() => store.saveSettings({ crossfade: 0.1, fadeIn: 0, fadeOut: value }));
     }
-    assert.deepEqual(store.loadSettings(), { fadeIn: 1.25, fadeOut: 2.5 });
+    assert.deepEqual(store.loadSettings(), { crossfade: 0.1, fadeIn: 1.25, fadeOut: 2.5 });
   } finally { store.close(); }
+});
+
+test('version-two settings gain the 100 ms default without losing saved fades', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'continuo-crossfade-'));
+  const path = join(directory, 'library.sqlite');
+  try {
+    const old = new DatabaseSync(path);
+    old.exec('CREATE TABLE audio_settings (id INTEGER PRIMARY KEY, fade_in REAL, fade_out REAL); INSERT INTO audio_settings VALUES (1, 2, 3); PRAGMA user_version = 2;');
+    old.close();
+    const store = new LibraryStore(path);
+    assert.deepEqual(store.loadSettings(), { crossfade: 0.1, fadeIn: 2, fadeOut: 3 });
+    store.saveSettings({ crossfade: 0.25, fadeIn: 2, fadeOut: 3 });
+    store.close();
+    const reopened = new LibraryStore(path);
+    assert.equal(reopened.loadSettings().crossfade, 0.25);
+    reopened.close();
+  } finally { rmSync(directory, { recursive: true }); }
 });
 
 test('upgrading a version-one library preserves tracks and persists new settings', () => {
@@ -110,11 +128,11 @@ test('upgrading a version-one library preserves tracks and persists new settings
     old.close();
     const upgraded = new LibraryStore(path);
     assert.deepEqual(upgraded.load(), [track()]);
-    assert.deepEqual(upgraded.loadSettings(), { fadeIn: 0, fadeOut: 0 });
-    upgraded.saveSettings({ fadeIn: 0.75, fadeOut: 3 });
+    assert.deepEqual(upgraded.loadSettings(), { crossfade: 0.1, fadeIn: 0, fadeOut: 0 });
+    upgraded.saveSettings({ crossfade: 0.1, fadeIn: 0.75, fadeOut: 3 });
     upgraded.close();
     const reopened = new LibraryStore(path);
-    assert.deepEqual(reopened.loadSettings(), { fadeIn: 0.75, fadeOut: 3 });
+    assert.deepEqual(reopened.loadSettings(), { crossfade: 0.1, fadeIn: 0.75, fadeOut: 3 });
     assert.deepEqual(reopened.load(), [track()]);
     reopened.close();
   } finally { rmSync(directory, { recursive: true }); }

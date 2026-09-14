@@ -52,6 +52,12 @@ export function useTracks() {
   const jobs = useRef(new Map<string, string>());
   const lastSaved = useRef('');
 
+  useEffect(() => {
+    for (const audio of prepared.current.values()) {
+      void audio.then(player => player.node.port.postMessage({ crossfade: settings.values.crossfade })).catch(() => {});
+    }
+  }, [settings.values.crossfade]);
+
   function snapshot(): SavedTrack[] {
     return slotState.current.flatMap((track, slot) => track ? [{
       id: track.id, slot, name: track.name, path: track.path, mode: track.mode,
@@ -197,7 +203,7 @@ export function useTracks() {
         else if (event.data.state === 'failed') fail(String(event.data.message));
       };
       session.setMode(session.mode, analysis);
-      audio.node.port.postMessage({ play: true, token, fadeIn: settings.current.current.fadeIn });
+      audio.node.port.postMessage({ play: true, token, fadeIn: settings.current.current.fadeIn, crossfade: settings.current.current.crossfade });
       session.started = performance.now();
       setPlaying(Object.fromEntries(sessions.current));
     } catch (cause) {

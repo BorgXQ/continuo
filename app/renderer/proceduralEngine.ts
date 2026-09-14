@@ -12,7 +12,8 @@ export class ProceduralEngine {
   private fading = false;
   private pendingAnalysis?: AnalysisResult;
   private planUntil = 0;
-  private readonly fade: number;
+  private fade: number;
+  private overlap = 0;
   ended = false;
 
   constructor(
@@ -21,7 +22,7 @@ export class ProceduralEngine {
     private analysis?: AnalysisResult,
     private readonly random: () => number = Math.random,
   ) {
-    this.fade = Math.round(sampleRate * 0.01);
+    this.fade = Math.round(sampleRate * 0.1);
     this.mode = analysis ? 'procedural' : 'once';
     if (analysis) {
       if (analysis.startBar === null) throw new Error('No non-terminating route exists.');
@@ -70,6 +71,11 @@ export class ProceduralEngine {
 
   get currentSample(): number { return this.position; }
 
+  setCrossfade(seconds: number): void {
+    if (!Number.isFinite(seconds) || seconds < 0) throw new Error('Crossfade must be finite and non-negative.');
+    this.fade = Math.round(seconds * this.sampleRate);
+  }
+
   private choose(bar: number): number | null {
     const routes = this.analysis?.routes[bar];
     if (!routes?.length) return null;
@@ -96,13 +102,15 @@ export class ProceduralEngine {
         this.planUntil = this.bar >= 0 ? this.bounds[this.bar][1]
           : this.bounds.find(([start]) => start > this.position)?.[0] ?? this.channels[0].length;
         this.next = this.choose(this.bar);
+        const target = this.next === null ? null : this.bounds[this.next];
+        this.overlap = target && this.next !== this.bar + 1
+          ? Math.min(this.fade, Math.floor((this.bounds[this.bar][1] - this.bounds[this.bar][0]) / 2), Math.floor((target[1] - target[0]) / 2)) : 0;
         // Do not enter a newly selected crossfade halfway through its overlap.
-        if (this.bar >= 0 && this.position > this.bounds[this.bar][1] - this.fade) this.next = null;
+        if (this.bar >= 0 && this.position > this.bounds[this.bar][1] - this.overlap) this.next = null;
       }
       const end = this.bar >= 0 ? this.bounds[this.bar][1] : 0;
       const target = this.next === null ? null : this.bounds[this.next];
-      const overlap = target && this.next !== this.bar + 1
-        ? Math.min(this.fade, end - this.bounds[this.bar][0], target[1] - target[0]) : 0;
+      const overlap = target ? this.overlap : 0;
       const offset = this.position - (end - overlap);
       this.fading = overlap > 0 && offset >= 0;
       const angle = overlap <= 1 ? 0 : offset / (overlap - 1) * Math.PI / 2;
@@ -113,7 +121,7 @@ export class ProceduralEngine {
           : audio[this.position];
       }
       this.position++;
-      if (this.fading && this.position >= end) {
+      if (target && this.next !== this.bar + 1 && this.position >= end) {
         this.position = target![0] + overlap;
         this.bar = -1;
         this.next = null;

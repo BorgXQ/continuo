@@ -33,7 +33,7 @@ export class LibraryStore {
     this.db = new DatabaseSync(path);
     this.db.exec('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;');
     const version = this.db.prepare('PRAGMA user_version').get()!.user_version;
-    if (version !== 0 && version !== 1 && version !== 2) { this.db.close(); throw new Error('Unsupported library database version.'); }
+    if (version !== 0 && version !== 1 && version !== 2 && version !== 3) { this.db.close(); throw new Error('Unsupported library database version.'); }
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS tracks (
         id TEXT PRIMARY KEY, slot INTEGER NOT NULL UNIQUE,
@@ -46,9 +46,10 @@ export class LibraryStore {
         fade_in REAL NOT NULL CHECK (fade_in >= 0),
         fade_out REAL NOT NULL CHECK (fade_out >= 0)
       );
-      INSERT OR IGNORE INTO audio_settings VALUES (1, 0, 0);
-      PRAGMA user_version = 2;
+      INSERT OR IGNORE INTO audio_settings (id, fade_in, fade_out) VALUES (1, 0, 0);
     `);
+    if (version !== 3) this.db.exec('ALTER TABLE audio_settings ADD COLUMN crossfade REAL NOT NULL DEFAULT 0.1 CHECK (crossfade >= 0);');
+    this.db.exec('PRAGMA user_version = 3;');
   }
 
   load(): SavedTrack[] {
@@ -62,15 +63,15 @@ export class LibraryStore {
   }
 
   loadSettings(): AudioSettings {
-    const row = this.db.prepare('SELECT fade_in, fade_out FROM audio_settings WHERE id = 1').get()!;
-    return { fadeIn: Number(row.fade_in), fadeOut: Number(row.fade_out) };
+    const row = this.db.prepare('SELECT crossfade, fade_in, fade_out FROM audio_settings WHERE id = 1').get()!;
+    return { crossfade: Number(row.crossfade), fadeIn: Number(row.fade_in), fadeOut: Number(row.fade_out) };
   }
 
   saveSettings(settings: AudioSettings): void {
-    if (!settings || ![settings.fadeIn, settings.fadeOut].every(value => Number.isFinite(value) && value >= 0)) {
+    if (!settings || ![settings.crossfade, settings.fadeIn, settings.fadeOut].every(value => Number.isFinite(value) && value >= 0)) {
       throw new Error('Fade durations must be finite, non-negative numbers.');
     }
-    this.db.prepare('UPDATE audio_settings SET fade_in = ?, fade_out = ? WHERE id = 1').run(settings.fadeIn, settings.fadeOut);
+    this.db.prepare('UPDATE audio_settings SET crossfade = ?, fade_in = ?, fade_out = ? WHERE id = 1').run(settings.crossfade, settings.fadeIn, settings.fadeOut);
   }
 
   file(id: string): { path: string; size: number; modified: number } {

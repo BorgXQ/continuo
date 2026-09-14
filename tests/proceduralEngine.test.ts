@@ -24,13 +24,14 @@ test('natural edges preserve consecutive samples across render blocks', () => {
   assert.deepEqual([...first, ...second], [...audio.slice(0, 45)]);
 });
 
-test('artificial edges use a 10 ms equal-power crossfade and consume the destination head', () => {
+test('artificial edges use a configured 10 ms equal-power crossfade and consume the destination head', () => {
   const audio = Float32Array.from({ length: 60 }, (_, i) => i);
   const engine = new ProceduralEngine([audio, audio.map(value => -value)], 1000, graph({
     0: [{ target: 2, probability: 1 }],
     2: [{ target: 0, probability: 1 }],
   }));
   const output = [new Float32Array(21), new Float32Array(21)];
+  engine.setCrossfade(0.01);
   engine.render(output);
   for (let i = 0; i < 21; i++) {
     const angle = (i - 10) / 9 * Math.PI / 2;
@@ -38,6 +39,26 @@ test('artificial edges use a 10 ms equal-power crossfade and consume the destina
     assert(Math.abs(output[0][i] - expected) < 0.00001);
     assert.equal(output[1][i], -output[0][i]);
   }
+});
+
+test('default crossfade is 100 ms and updates do not alter a planned overlap', () => {
+  const audio = Float32Array.from({ length: 1000 }, (_, i) => i);
+  const result = { ...graph({ 0: [{ target: 2, probability: 1 }] }), bars: [[0, 0.3], [0.3, 0.6], [0.6, 0.9]] as [number, number][] };
+  const engine = new ProceduralEngine([audio], 1000, result);
+  engine.render([new Float32Array(250)]);
+  engine.setCrossfade(0);
+  engine.render([new Float32Array(50)]);
+  assert.equal(engine.currentSample, 700);
+});
+
+test('zero crossfade still takes alternative edges without consuming the destination', () => {
+  const audio = Float32Array.from({ length: 60 }, (_, i) => i);
+  const engine = new ProceduralEngine([audio], 1000, graph({ 0: [{ target: 2, probability: 1 }] }));
+  engine.setCrossfade(0);
+  const output = new Float32Array(21);
+  engine.render([output]);
+  assert.deepEqual([...output], [...audio.slice(0, 20), 40]);
+  for (const value of [-1, NaN, Infinity]) assert.throws(() => engine.setCrossfade(value));
 });
 
 test('route choice honors probabilities supplied by the Python navigator', () => {
