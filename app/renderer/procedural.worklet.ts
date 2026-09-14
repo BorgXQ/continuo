@@ -6,34 +6,47 @@ declare function registerProcessor(name: string, processor: typeof AudioWorkletP
 
 class ProceduralProcessor extends AudioWorkletProcessor {
   private engine?: ProceduralEngine;
-  private failed = false;
+  private playing = false;
+  private disposed = false;
+  private token = '';
 
   constructor() {
     super();
     this.port.onmessage = event => {
-      if (event.data.stop) {
-        this.engine = undefined;
-        this.failed = true;
-        return;
-      }
       try {
-        this.engine = new ProceduralEngine(event.data.channels, sampleRate, event.data.analysis);
-        this.port.postMessage({ state: 'ready' });
+        const message = event.data;
+        if (message.dispose) { this.engine = undefined; this.disposed = true; return; }
+        if (message.channels) {
+          this.engine = new ProceduralEngine(message.channels, sampleRate);
+          this.port.postMessage({ state: 'ready' });
+        }
+        if (message.stop) { this.playing = false; this.engine?.reset(); }
+        if (message.analysis) this.engine?.setAnalysis(message.analysis);
+        if (message.mode) this.engine?.setMode(message.mode);
+        if (message.play) { this.token = message.token; this.playing = true; }
       } catch (error) {
-        this.failed = true;
+        this.playing = false;
         this.port.postMessage({ state: 'failed', message: String(error) });
       }
     };
   }
 
   process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
-    try { this.engine?.render(outputs[0]); }
-    catch (error) {
-      this.failed = true;
+    try {
+      if (this.playing) {
+        this.engine?.render(outputs[0]);
+        if (this.engine?.ended) {
+          this.playing = false;
+          this.engine.reset();
+          this.port.postMessage({ state: 'ended', token: this.token });
+        }
+      }
+    } catch (error) {
+      this.playing = false;
       outputs[0].forEach(channel => channel.fill(0));
       this.port.postMessage({ state: 'failed', message: String(error) });
     }
-    return !this.failed;
+    return !this.disposed;
   }
 }
 

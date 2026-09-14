@@ -59,3 +59,90 @@ test('rejects graphs without a safe start or playable bar boundaries', () => {
   assert.throws(() => new ProceduralEngine([new Float32Array(60)], 1000, graph({}, null)), /non-terminating/);
   assert.throws(() => new ProceduralEngine([new Float32Array(0)], 1000, graph({})), /boundaries/);
 });
+
+test('switching all modes preserves the current sample without resetting playback', () => {
+  const audio = Float32Array.from({ length: 60 }, (_, i) => i);
+  const engine = new ProceduralEngine([audio], 1000);
+  engine.setAnalysis(graph({ 0: [{ target: 2, probability: 1 }], 2: [{ target: 0, probability: 1 }] }));
+  for (const mode of ['once', 'loop', 'procedural', 'once', 'loop', 'procedural'] as const) {
+    const position = engine.currentSample;
+    engine.setMode(mode);
+    assert.equal(engine.currentSample, position);
+    const output = new Float32Array(1);
+    engine.render([output]);
+    assert.equal(output[0], position);
+  }
+});
+
+test('leaving procedural mode mid-crossfade finishes the overlap, then continues from the destination', () => {
+  const audio = Float32Array.from({ length: 60 }, (_, i) => i);
+  const result = graph({ 0: [{ target: 2, probability: 1 }], 2: [{ target: 0, probability: 1 }] });
+  const engine = new ProceduralEngine([audio], 1000, result);
+  const reference = new ProceduralEngine([audio], 1000, result);
+  engine.render([new Float32Array(15)]);
+  reference.render([new Float32Array(15)]);
+  engine.setMode('once');
+  const output = new Float32Array(5);
+  const expected = new Float32Array(5);
+  engine.render([output]);
+  reference.render([expected]);
+  assert.deepEqual(output, expected);
+  const tail = new Float32Array(11);
+  engine.render([tail]);
+  assert.deepEqual([...tail], [...audio.slice(50), 0]);
+  assert(engine.ended);
+});
+
+test('entering procedural mode during the fade window waits for the next bar', () => {
+  const audio = Float32Array.from({ length: 60 }, (_, i) => i);
+  const engine = new ProceduralEngine([audio], 1000);
+  engine.setAnalysis(graph({ 0: [{ target: 2, probability: 1 }], 2: [{ target: 0, probability: 1 }] }));
+  engine.render([new Float32Array(15)]);
+  engine.setMode('procedural');
+  const output = new Float32Array(10);
+  engine.render([output]);
+  assert.deepEqual(output, audio.slice(15, 25));
+});
+
+test('one-time ends, normal loop wraps, and stop resets the cursor for replay', () => {
+  const audio = Float32Array.from({ length: 60 }, (_, i) => i + 1);
+  const engine = new ProceduralEngine([audio], 1000);
+  const output = new Float32Array(65);
+  engine.render([output]);
+  assert.deepEqual([...output], [...audio, 0, 0, 0, 0, 0]);
+  engine.reset();
+  engine.setMode('loop');
+  engine.render([output]);
+  assert.deepEqual([...output], [...audio, ...audio.slice(0, 5)]);
+  assert(!engine.ended);
+});
+
+test('switching in an unsafe tail preserves it and finds the graph after wrapping', () => {
+  const audio = Float32Array.from({ length: 60 }, (_, i) => i);
+  const engine = new ProceduralEngine([audio], 1000);
+  engine.setAnalysis(graph({ 0: [{ target: 0, probability: 1 }] }));
+  engine.render([new Float32Array(45)]);
+  engine.setMode('procedural');
+  const output = new Float32Array(25);
+  engine.render([output]);
+  assert.deepEqual([...output], [...audio.slice(45), ...audio.slice(0, 10)]);
+  engine.render([new Float32Array(10)]);
+  assert.equal(engine.currentSample, 10);
+});
+
+test('replacing analysis during an overlap does not interrupt the crossfade', () => {
+  const audio = Float32Array.from({ length: 60 }, (_, i) => i);
+  const result = graph({ 0: [{ target: 2, probability: 1 }], 2: [{ target: 0, probability: 1 }] });
+  const engine = new ProceduralEngine([audio], 1000, result);
+  const reference = new ProceduralEngine([audio], 1000, result);
+  engine.render([new Float32Array(15)]);
+  reference.render([new Float32Array(15)]);
+  engine.setAnalysis(graph({ 0: [{ target: 0, probability: 1 }], 2: [{ target: 2, probability: 1 }] }));
+  engine.setMode('loop');
+  const output = new Float32Array(5);
+  const expected = new Float32Array(5);
+  engine.render([output]);
+  reference.render([expected]);
+  assert.deepEqual(output, expected);
+  assert.equal(engine.currentSample, 50);
+});

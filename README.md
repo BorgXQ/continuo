@@ -17,6 +17,13 @@ playback continues and can be stopped in NOW PLAYING.
 Successful analysis enables **Procedural Loop** in the tile's mode control when
 the graph contains a safe looping region. Playback uses the Python navigator's
 transition probabilities and 10 ms equal-power crossfades on artificial jumps.
+Imported audio is decoded and prepared in memory ahead of playback. All three
+modes share the same audio player, so mode changes preserve the current sample
+and do not restart the track. A crossfade already underway finishes before a
+mode change takes effect. If procedural mode is selected outside the safe graph
+region, playback continues naturally until it can enter that region (wrapping
+at the end if necessary). Initial playback may wait if import preparation is
+still running; replay and mode changes reuse the prepared audio.
 Analysis currently assumes 4/4 time, matching the notebook prototype.
 Tracks, results, and queues exist only in memory and clear when the app closes
 or reloads. No graph or audio snippets are saved.
