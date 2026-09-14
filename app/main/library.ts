@@ -28,6 +28,7 @@ export function registerLibrary(): void {
     return tracks;
   });
   ipcMain.handle('library:save', (event, tracks: SavedTrack[]) => { authorize(event); store.save(tracks); });
+  ipcMain.handle('library:move', (event, from: number, to: number) => { authorize(event); store.move(from, to); });
   ipcMain.on('library:flush', (event, tracks: SavedTrack[]) => {
     try { authorize(event); store.save(tracks); event.returnValue = null; }
     catch (error) { event.returnValue = String(error); }

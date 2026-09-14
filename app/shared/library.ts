@@ -16,6 +16,7 @@ export interface SavedTrack {
 export interface LibraryBridge {
   load: () => Promise<(SavedTrack & { missing: boolean })[]>;
   save: (tracks: SavedTrack[]) => Promise<void>;
+  move: (from: number, to: number) => Promise<void>;
   flush: (tracks: SavedTrack[]) => string | null;
   read: (id: string) => Promise<Uint8Array>;
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { DragEvent, KeyboardEvent } from 'react';
 import { ArrowLeft, ArrowRight, FileWarning, FolderSearch, Keyboard, LoaderCircle, Pencil, Plus, Repeat, Slash, Sparkles, Trash2, X } from 'lucide-react';
 import { MODE_LABELS, PAGE_SIZE } from './useTracks';
@@ -105,6 +106,7 @@ export function Soundtracks({ library }: { library: Library }) {
 
   function dragOver(event: DragEvent<HTMLElement>) {
     event.preventDefault();
+    if (dragging !== null) event.dataTransfer.dropEffect = 'move';
     const bounds = event.currentTarget.getBoundingClientRect();
     const direction = event.clientX < bounds.left + 36 ? -1 : event.clientX > bounds.right - 36 ? 1 : 0;
     if (direction === pageDirection.current) return;
@@ -122,10 +124,16 @@ export function Soundtracks({ library }: { library: Library }) {
     event.preventDefault();
     event.stopPropagation();
     clearPageTimer();
-    if (dragging !== null) library.swap(dragging, index);
-    else library.add(Array.from(event.dataTransfer.files), index);
-    setDragging(null);
-    setDropTarget(null);
+    if (dragging !== null) {
+      flushSync(() => {
+        library.swap(dragging, index);
+        setDragging(null);
+        setDropTarget(null);
+      });
+    } else {
+      library.add(Array.from(event.dataTransfer.files), index);
+      setDropTarget(null);
+    }
   }
 
   return (

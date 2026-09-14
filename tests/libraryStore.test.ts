@@ -68,3 +68,17 @@ test('unanalyzed and no-loop tracks round-trip; invalid metadata is rejected', (
     assert.throws(() => store.file('unknown'));
   } finally { store.close(); }
 });
+
+test('moving tiles updates positions without rewriting analysis', () => {
+  const store = new LibraryStore(':memory:');
+  try {
+    store.save([track('a', 0), track('b', 1)]);
+    store.move(0, 1);
+    assert.deepEqual(store.load(), [track('b', 0), track('a', 1)]);
+    store.move(1, 40);
+    assert.deepEqual(store.load(), [track('b', 0), track('a', 40)]);
+    store.move(40, 40);
+    assert.throws(() => store.move(-1, 0));
+    assert.deepEqual(store.load(), [track('b', 0), track('a', 40)]);
+  } finally { store.close(); }
+});

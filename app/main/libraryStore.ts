@@ -89,5 +89,18 @@ export class LibraryStore {
     } catch (error) { this.db.exec('ROLLBACK'); throw error; }
   }
 
+  move(from: number, to: number): void {
+    if (![from, to].every(slot => Number.isSafeInteger(slot) && slot >= 0 && slot <= 100000)) throw new Error('Invalid track position.');
+    if (from === to) return;
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const update = this.db.prepare('UPDATE tracks SET slot = ? WHERE slot = ?');
+      update.run(-1, from);
+      update.run(from, to);
+      update.run(to, -1);
+      this.db.exec('COMMIT');
+    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
+  }
+
   close(): void { this.db.close(); }
 }

@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('analysis', bridge);
 const library: LibraryBridge = {
   load: () => ipcRenderer.invoke('library:load'),
   save: tracks => ipcRenderer.invoke('library:save', tracks),
+  move: (from, to) => ipcRenderer.invoke('library:move', from, to),
   flush: tracks => ipcRenderer.sendSync('library:flush', tracks),
   read: id => ipcRenderer.invoke('library:read', id),
 };

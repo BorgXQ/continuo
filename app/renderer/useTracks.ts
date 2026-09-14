@@ -250,11 +250,13 @@ export function useTracks() {
   }
 
   function swap(from: number, to: number) {
-    setSlots(previous => {
-      const next = [...previous];
-      [next[from], next[to]] = [next[to], next[from]];
-      return next;
-    });
+    if (from === to || !loaded.current) return;
+    const next = [...slotState.current];
+    [next[from], next[to]] = [next[to], next[from]];
+    slotState.current = next;
+    renderSlots(next);
+    lastSaved.current = '';
+    void window.library?.move(from, to).catch(cause => setError(`Cannot save track position: ${String(cause)}`));
   }
 
   function locate(track: Track, file: File) {
