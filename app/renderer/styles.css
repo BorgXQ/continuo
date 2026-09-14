@@ -39,7 +39,7 @@ header {
   border: 1px solid #a7a7a7;
   flex-shrink: 0;
 }
-h1 { margin: 0 0 8px; font-size: 40px; font-weight: 600; }
+h1 { display: flex; gap: 0.2em; margin: 0 0 8px; font-size: 40px; font-weight: 600; }
 p { margin: 4px 0; }
 .credits { margin-left: auto; text-align: right; color: #bcbcbc; }
 

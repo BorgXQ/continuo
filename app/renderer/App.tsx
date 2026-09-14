@@ -11,7 +11,7 @@ export function App() {
     <main>
       <header>
         <div>
-          <h1>INFITICUM</h1>
+          <h1 aria-label="INFITICUM">{'INFITICUM'.split('').map((letter, index) => <span key={index} aria-hidden="true">{letter}</span>)}</h1>
           <p>Real-time Adaptive Music Looper</p>
         </div>
         <div className="credits">
