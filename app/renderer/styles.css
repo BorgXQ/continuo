@@ -42,7 +42,7 @@ header {
 h1 { display: flex; gap: 0.2em; margin: 0 0 8px; font-size: 40px; font-weight: 600; }
 p { margin: 4px 0; }
 .credits { margin-left: auto; text-align: right; color: #bcbcbc; }
-.credits .settings-button { display: flex; margin-left: auto; color: #98a69b; }
+.credits .settings-button { display: flex; justify-content: flex-end; padding: 0; margin-left: auto; color: #98a69b; }
 .settings-button:hover { color: #eeeeee; }
 .configuration-fields { display: grid; gap: 20px; }
 .configuration-fields input:invalid { border-color: #f19999; }
