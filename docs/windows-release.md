@@ -1,8 +1,15 @@
 # Windows v1.0.0 Build
 
-Build on Windows x64, not WSL, using a Python 3.11 virtual environment
-with the analysis dependencies already installed. Node 24 is required to build;
-end users should not need Python, Node, or FFmpeg.
+Build on Windows x64. End users should not need Python, Node, or FFmpeg.
+
+## Prerequisites
+
+- Python 3.11 with the Windows Python launcher (`py`).
+- Node 24 and npm.
+- Git and Microsoft C++ Build Tools with the C++ workload and Windows SDK, for the DBN source dependency.
+- FFmpeg and FFprobe available on PATH. Use a distribution containing both executables. Static builds simplify bundling; external DLL dependencies must also be included if your build requires them.
+
+## Build
 
 From PowerShell in the repository:
 
@@ -20,11 +27,7 @@ npm run build:backend
 .\dist\continuo-analysis\continuo-analysis.exe "C:\Music\your-track.mp3"
 ```
 
-Use an existing MP3 for the last command. The worker must finish with a JSON
-message whose state is `complete`. A successful build alone is not sufficient:
-scientific dependencies may need additional PyInstaller collection rules.
-Use an FFmpeg distribution containing both executables; if they depend on
-external DLLs, those must also be bundled. Static builds simplify this step.
+Use an existing MP3 for the last command. The worker must finish with a JSON message whose state is `complete`. A successful build alone is not sufficient: scientific dependencies may need additional PyInstaller collection rules.
 
 After the backend test succeeds:
 
@@ -32,16 +35,7 @@ After the backend test succeeds:
 npm run make -- --platform=win32 --arch=x64
 ```
 
-The installer is under `out/make/squirrel.windows/x64/`. The backend folder is
-included automatically. Packaged Windows builds use it, never system Python or
-CONTINUO_PYTHON. Development still uses the existing Python launch mechanism.
-Rebuild the backend whenever Python source or dependencies change.
-The build script uses CONTINUO_PYTHON when set, otherwise .venv. It downloads
-and validates Beat This!'s small0 checkpoint and includes it and its MIT license
-in the bundle. This download requires internet access during the build, not
-during installed-app analysis. The DBN uses madmom code, not madmom model files;
-a packaging hook omits model data and a post-build check rejects accidental inclusion.
-Installing the pinned madmom source dependency requires Git and Microsoft C++ Build Tools.
+The installer is under `out/make/squirrel.windows/x64/`. The backend folder is included automatically. Packaged Windows builds use it, never system Python or CONTINUO_PYTHON. Development still uses the existing Python launch mechanism. Rebuild the backend whenever Python source or dependencies change. The build script uses CONTINUO_PYTHON when set, otherwise .venv. It downloads and validates Beat This!'s small0 checkpoint and includes it and its MIT license in the bundle. This download requires internet access during the build, not during installed-app analysis. The DBN uses madmom code, not madmom model files; a packaging hook omits model data and a post-build check rejects accidental inclusion.
 
 ## Release Checks
 
@@ -55,17 +49,8 @@ Installing the pinned madmom source dependency requires Git and Microsoft C++ Bu
 
 ## Distribution Notices
 
-This build setup is not a completed license audit. Include the license notices
-for bundled Python packages, the runtime, and your exact FFmpeg distribution;
-meet any applicable source-distribution obligations before publishing.
+This build setup is not a completed license audit. Include the license notices for bundled Python packages, the runtime, and your exact FFmpeg distribution; meet any applicable source-distribution obligations before publishing.
 
-Beat This!'s code and published model weights are MIT-licensed. Its license is
-included alongside the bundled checkpoint. The authors note that some training
-material has separate restrictions; review their licensing statement:
-https://github.com/CPJKU/beat_this#license
-No madmom models are included in the new backend. Rebuild old bundles before release.
-The BSD license notice for madmom's DBN code is bundled alongside the checkpoint.
-The font license is already included in the Electron resources.
+Beat This!'s code and published model weights are MIT-licensed. Its license is included alongside the bundled checkpoint. The authors note that some training material has separate restrictions; review their licensing statement: https://github.com/CPJKU/beat_this#license The backend includes no madmom pretrained models. The BSD license notice for madmom's DBN code is bundled alongside the checkpoint. The font license is already included in the Electron resources.
 
-Unsigned builds can encounter Windows security warnings. Do not instruct users
-to disable security software; investigate/sign the release as appropriate.
+Unsigned builds can encounter Windows security warnings. Do not instruct users to disable security software; investigate/sign the release as appropriate.
