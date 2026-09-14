@@ -1,11 +1,11 @@
-# Infiticum
+# Continuo
 
 ## Desktop App
 
 Use Node 24 and run `npm install`, then `npm start` (Electron Forge).
 Analysis requires Python 3.9 with the dependencies in `requirements.txt`.
 The app uses `.venv/bin/python` (`.venv/Scripts/python.exe` on Windows) when
-available. Set `INFITICUM_PYTHON` to an interpreter's absolute path to override it.
+available. Set `CONTINUO_PYTHON` to an interpreter's absolute path to override it.
 Packaged builds include the analysis scripts, but do not bundle Python or its dependencies.
 
 Right-click an imported local MP3 and select **Analyze**. Jobs run one at a time;
@@ -27,8 +27,8 @@ still running; replay and mode changes reuse the prepared audio.
 Analysis currently assumes 4/4 time, matching the notebook prototype.
 Tracks, tile positions, names, volumes, shortcuts, playback modes, and completed
 analysis are saved automatically in `library.sqlite` inside Electron's user-data
-directory (`~/.config/infiticum` on Linux, `%APPDATA%/infiticum` on Windows,
-`~/Library/Application Support/infiticum` on macOS). SQLite stores bar boundaries
+directory (`~/.config/continuo` on Linux, `%APPDATA%/continuo` on Windows,
+`~/Library/Application Support/continuo` on macOS). SQLite stores bar boundaries
 and alternative edges; natural edges are reconstructed. No audio is stored.
 Original MP3s are required. Missing files remain visible; use **Locate file** in
 the track menu to replace their paths. Relinking, or a changed file size or

@@ -33,7 +33,7 @@ export function registerAnalysis(): void {
     if (job.cancelled || job.owner.isDestroyed()) { advance(); return; }
     const root = app.isPackaged ? process.resourcesPath : app.getAppPath();
     const localPython = join(root, '.venv', process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
-    const python = process.env.INFITICUM_PYTHON || (existsSync(localPython) ? localPython : process.platform === 'win32' ? 'python' : 'python3');
+    const python = process.env.CONTINUO_PYTHON || (existsSync(localPython) ? localPython : process.platform === 'win32' ? 'python' : 'python3');
     const child = spawn(python, ['-B', '-u', '-m', 'src.analysis_worker', job.path], {
       cwd: root,
       windowsHide: true,
@@ -58,7 +58,7 @@ export function registerAnalysis(): void {
         else if (message.state === 'failed') failure = String(message.message);
       } catch { failure = 'Invalid response from the analysis worker.'; }
     });
-    child.on('error', error => { failure = `Cannot start Python analysis: ${error.message}. Check INFITICUM_PYTHON and requirements.txt.`; });
+    child.on('error', error => { failure = `Cannot start Python analysis: ${error.message}. Check CONTINUO_PYTHON and requirements.txt.`; });
     child.on('close', code => {
       lines.close();
       if (!job.cancelled && !job.owner.isDestroyed()) {

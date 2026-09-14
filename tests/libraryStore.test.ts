@@ -16,7 +16,7 @@ function track(id = 'track1', slot = 0): SavedTrack {
 }
 
 test('SQLite survives reopen and reconstructs natural edges without audio storage', () => {
-  const directory = mkdtempSync(join(tmpdir(), 'infiticum-db-'));
+  const directory = mkdtempSync(join(tmpdir(), 'continuo-db-'));
   const path = join(directory, 'library.sqlite');
   try {
     const store = new LibraryStore(path);

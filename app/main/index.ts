@@ -10,7 +10,7 @@ function createWindow(): void {
     height: 840,
     minWidth: 800,
     minHeight: 600,
-    title: 'Infiticum',
+    title: 'Continuo',
     backgroundColor: '#111111',
     show: false,
     webPreferences: {
@@ -52,7 +52,7 @@ if (squirrelStartup) {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
   }).catch(error => {
-    dialog.showErrorBox('Cannot open Infiticum', String(error));
+    dialog.showErrorBox('Cannot open Continuo', String(error));
     app.quit();
   });
 }
