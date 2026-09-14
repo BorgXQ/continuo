@@ -84,13 +84,14 @@ input:disabled { cursor: default; }
 .analysis-spinner svg { animation: analysis-spin 1.1s linear infinite; }
 .cancel-analysis { position: absolute; top: 3px; right: 3px; color: #e87878; }
 .cancel-analysis:hover { color: #ffaaaa; }
-.procedural-icon { display: block; position: relative; }
+.procedural-icon { display: block; position: relative; width: 19px; height: 19px; }
 .procedural-icon svg:last-child { position: absolute; right: -3px; top: -7px; }
 @keyframes analysis-spin { to { transform: rotate(360deg); } }
 .tile-play, .add-track { width: 100%; height: 100%; min-height: 64px; padding: 14px 18px 14px 48px; display: flex; justify-content: center; align-items: center; font-size: 14px; }
 .tile-name { overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .add-track { padding: 14px; gap: 10px; color: #8bbde8; }
-.loop-button { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 28px; height: 32px; padding: 4px; color: #98a69b; }
+.loop-button { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; justify-content: center; width: 28px; height: 32px; padding: 4px; color: #98a69b; }
+.loop-button svg { display: block; flex-shrink: 0; }
 .loop-button:hover { color: #eef7f0; }
 .playing .loop-button { color: #83e09f; }
 .loop-off { position: relative; display: block; width: 19px; height: 19px; }
