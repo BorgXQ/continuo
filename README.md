@@ -12,18 +12,11 @@
   <a href="docs/windows-release.md">Build for Windows</a>
 </p>
 
-Continuo plays local MP3s and finds alternative transitions within each track,
-letting your soundtrack continue while you focus on the game.
+Continuo plays local MP3s and finds alternative transitions within each track, letting your soundtrack continue while you focus on the game.
 
 ## Install
 
-The first release targets **Windows x64**. When available, download the Setup
-`.exe` from [GitHub Releases](https://github.com/BorgXQ/continuo/releases), run it,
-and open Continuo. The Windows installer bundles the analysis backend; users
-do not need Python, Node.js, or FFmpeg installed separately.
-
-Audio plays through your system's default output. **Discord output is not
-included in v1.0.0.** Linux and macOS installers are not part of this release.
+Continuo-v1.0.0 is only available for **Windows x64**. Download the one-click Setup `.exe` installer from [GitHub Releases](https://github.com/BorgXQ/continuo/releases), run it, and open Continuo.
 
 ## Start Playing
 
@@ -38,40 +31,27 @@ included in v1.0.0.** Linux and macOS installers are not part of this release.
 | Normal Loop | Repeats the whole track. |
 | Procedural Loop | Follows analyzed bar transitions to keep the music going. |
 
-Mode changes preserve playback position. Multiple tracks can play together;
-**NOW PLAYING** shows the most recently played or selected track first. Expand
-the section to access the others, adjust their volume, or stop them.
+Multiple tracks can play together; **NOW PLAYING** shows the most recently played or selected track first. Expand the section to access the others, adjust their volume, or stop them.
 
-Drag tiles to rearrange them. Right-click a track to rename it, assign a keyboard
-shortcut, analyze it, or remove it from the library. Analysis jobs run one at a
-time, queue automatically, and can be cancelled. Existing playback can continue
-while a track is analyzed, but busy tiles cannot start playback or change mode.
+Rearrange soundboard tiles by dragging them. Right-click a track to rename it, assign a keyboard shortcut, analyze it, or remove it from the library. Analysis jobs run one at a time, queue automatically, and can be cancelled. Existing playback can continue while a track is analyzed, but busy tiles cannot start playback or change mode.
 
 ## Audio Settings
 
-Open the gear above the version number to configure global fade-in and fade-out
-in **milliseconds**. Both default to zero and save automatically.
+Click the gear icon above the version number to configure transition crossfade and global fade-in/out in **milliseconds**. All values save automatically and cannot be negative.
 
-- Fade-in softens the start of playback with an S-curve envelope.
-- Fade-out lets audio continue after Stop until it reaches silence, while another track can fade in.
+- Transition crossfade (default: 100 ms) blends alternative jumps during proceedural loop streaming. Long durations are capped at half the shorter participating bar.
+- Fade-in (default: 0 ms) softens the start of playback.
+- Fade-out (default: 0 ms) softens the end of playback.
 - Press Stop again in NOW PLAYING to end a fade-out immediately.
 - Output currently has one option: **Device output**, using the system default.
 
-Fades apply to playback starts and stops, not every procedural jump. Alternative
-transitions use their own 10 ms crossfade. One-time playback ends at the file's
-end; removing a playing track or quitting the app stops it immediately.
-
 ## Your Library
 
-Tracks, tile positions, names, volumes, shortcuts, modes, completed analysis, and
-audio settings are saved automatically in a local SQLite database.
+Tracks, tile positions, names, volumes, shortcuts, modes, completed analysis, and audio settings are saved automatically in a local SQLite database.
 
-**Keep the original MP3s.** Continuo stores metadata, not copies of your audio.
-Use **Locate file** in a missing track's menu to reconnect it. Relinking a file,
-or detecting a change in its size or modification time, clears its old analysis.
+**Keep the original MP3s.** Continuo stores metadata, not audio snippets. Use **Locate file** in a missing track's menu to reconnect it. Relinking a file, or detecting a change in its size or modification time, clears its old analysis.
 
-On Windows, the database is at `%APPDATA%/continuo/library.sqlite`. Playback and
-unfinished analysis jobs do not resume when you reopen the app.
+On Windows, the database is at `%APPDATA%/continuo/library.sqlite`. Playback and unfinished analysis jobs do not resume when you reopen the app.
 
 ## How It Works
 
@@ -86,18 +66,26 @@ flowchart LR
     G --> G
 ```
 
-The Python pipeline in `src/` compares musical context across bars. The desktop
-player uses the resulting graph and transition probabilities to choose where
-to continue, with short crossfades at alternative transitions.
+The Python pipeline in `src/` compares musical context across bars. The desktop player uses the resulting graph and transition probabilities to choose where to continue, with short crossfades at alternative transitions.
 
-Analysis currently assumes **4/4 time**. Not every track yields a safe procedural
-loop, and similar accompaniment does not guarantee seamless solo or melody
-continuation. Tracks without a safe loop remain playable in the other modes.
+Analysis uses Beat This! `small0` on CPU, followed by a DBN configured for four-beat bars. Not every track yields a safe procedural loop, and similar accompaniment does not guarantee seamless solo or melody continuation. Tracks without a safe loop remain playable in the other modes.
 
 ## Development
 
-The desktop app uses **Electron Forge, React, TypeScript, and Vite**. Analysis
-uses **Python 3.9** and the packages in `requirements.txt`.
+The desktop app uses **Electron Forge**, **React**, **TypeScript**, and **Vite**. Analysis uses **Python 3.11.9** and the packages in `requirements.txt`.
+
+Create a virtual environment, install CPU-only PyTorch and torchaudio, then install the analysis dependencies:
+
+```sh
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+python -m pip install -r requirements.txt
+python -m pip check
+```
+
+Development downloads the `small0` checkpoint on first analysis; subsequent
+analyses reuse the cached file. Windows installers include it for offline use.
 
 With Node 24 installed and the Python analysis environment prepared:
 
@@ -106,14 +94,12 @@ npm ci
 npm start
 ```
 
-Development uses `.venv/bin/python` on Linux/macOS or
-`.venv/Scripts/python.exe` on Windows. Set `CONTINUO_PYTHON` to an absolute
-interpreter path to override it. Windows development may require Microsoft C++
-Build Tools to build madmom, and FFmpeg must be available for decoding.
+Development uses `.venv`, with `bin/python` on Linux/macOS or `Scripts/python.exe` on Windows. Set `CONTINUO_PYTHON` to an absolute interpreter path to override it. Building the DBN dependency requires Git and a C/C++ compiler (Microsoft C++ Build Tools on Windows). FFmpeg is included in the Windows bundle for audio decoding support.
 
 ```sh
 npm run typecheck
 npm test
+python -m unittest discover -s tests -p 'test_*.py'
 ```
 
 For backend bundling, installer commands, and the release checklist, see
@@ -122,7 +108,4 @@ developers, not end users.
 
 ## Third-Party Assets
 
-The interface uses IBM Plex Mono; its [font license](assets/fonts/ibm-plex-mono/LICENSE.txt)
-is included. Third-party code and pretrained models retain their own licenses.
-In particular, madmom's models have separate noncommercial terms; see the
-[distribution notes](docs/windows-release.md#distribution-notices) before redistributing a build.
+The interface uses IBM Plex Mono; its [font license](assets/fonts/ibm-plex-mono/LICENSE.txt) is included. Third-party code and pretrained models retain their own licenses. Beat This! code and published model weights are MIT-licensed; see the [distribution notes](docs/windows-release.md#distribution-notices) before redistributing a build.
