@@ -25,6 +25,9 @@ export function Configuration({ settings, close }: { settings: ReturnType<typeof
     <div className="configuration-fields">
       <Duration label="Global fade-in" value={settings.values.fadeIn} disabled={settings.loading} change={value => settings.update('fadeIn', value)} />
       <Duration label="Global fade-out" value={settings.values.fadeOut} disabled={settings.loading} change={value => settings.update('fadeOut', value)} />
+      <label className="duration-field"><span>Output</span>
+        <select className="output-select" defaultValue="device"><option value="device">Device output</option></select>
+      </label>
     </div>
     {settings.error && <p className="error" role="alert">{settings.error}</p>}
   </dialog>;
