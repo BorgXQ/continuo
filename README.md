@@ -98,7 +98,7 @@ npm ci
 npm start
 ```
 
-Development uses `.venv`, with `bin/python` on Linux/macOS or `Scripts/python.exe` on Windows. Set `CONTINUO_PYTHON` to an absolute interpreter path to override it. Building the DBN dependency requires Git and a C/C++ compiler (Microsoft C++ Build Tools on Windows). FFmpeg is included in the Windows bundle for audio decoding support.
+Development uses `.venv`, with `bin/python` on Linux/macOS or `Scripts/python.exe` on Windows. Set `CONTINUO_PYTHON` to an absolute interpreter path to override it. Building the DBN dependency requires Git and a C/C++ compiler (Microsoft C++ Build Tools on Windows). The Python backend does not bundle the FFmpeg or FFprobe command-line executables; Electron retains its own media libraries.
 
 ```sh
 npm run typecheck
