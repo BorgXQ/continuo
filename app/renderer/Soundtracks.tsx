@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DragEvent, KeyboardEvent } from 'react';
-import { ArrowLeft, ArrowRight, Infinity as InfinityIcon, Keyboard, LoaderCircle, Pencil, Plus, Repeat, Slash, Sparkles, Trash2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Keyboard, LoaderCircle, Pencil, Plus, Repeat, Slash, Sparkles, Trash2, X } from 'lucide-react';
 import { MODE_LABELS, PAGE_SIZE } from './useTracks';
 import type { Track, useTracks } from './useTracks';
 
@@ -168,13 +168,10 @@ export function Soundtracks({ library }: { library: Library }) {
                   <span className="tile-name">{track.name}</span>
                 </button>
                 {track.job ? <>
-                  <span className="loop-button analysis-spinner"><LoaderCircle size={20} /></span>
-                  <span className="analysis-progress" role="progressbar" aria-label={`${track.job.state === 'queued' ? 'Queued' : 'Analyzing'} ${track.name}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={track.job.progress} title={`${track.job.stage}; progress reflects completed analysis stages`}>
-                    {track.job.state === 'queued' ? 'Queued ' : ''}{track.job.progress}%
-                  </span>
+                  <span className="loop-button analysis-spinner" role="status" aria-label={`${track.job.state === 'queued' ? 'Queued' : 'Analyzing'} ${track.name}`} title={track.job.stage}><LoaderCircle size={20} /></span>
                   <button className="cancel-analysis icon-button" title="Cancel analysis" aria-label={`Cancel analysis for ${track.name}`} onClick={() => void library.cancelAnalysis(track)}><X size={16} /></button>
                 </> : <button className="loop-button" aria-label={`Loop mode for ${track.name}: ${MODE_LABELS[track.mode]}`} title={`${MODE_LABELS[track.mode]}; click to change`} onClick={() => library.cycleMode(track)}>
-                  {track.mode === 'procedural' ? <span className="procedural-icon"><InfinityIcon size={20} /><Sparkles size={11} /></span> : track.mode === 'loop' ? <InfinityIcon size={20} /> : <span className="loop-off"><Repeat size={19} /><Slash size={19} /></span>}
+                  {track.mode === 'procedural' ? <span className="procedural-icon"><Repeat size={19} /><Sparkles size={11} /></span> : track.mode === 'loop' ? <Repeat size={19} /> : <span className="loop-off"><Repeat size={19} /><Slash size={19} /></span>}
                 </button>}
               </> : <button className="add-track" onClick={() => { pickSlot.current = index; picker.current?.click(); }}><Plus size={21} /> Add Track</button>}
             </div>

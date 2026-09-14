@@ -78,13 +78,12 @@ input:disabled { cursor: default; }
 .track-tile.drop-target { outline: 2px solid #8bbde8; outline-offset: -4px; background: #1e2b36; }
 .track-tile.dragging { opacity: .4; }
 .track-tile.analyzing { background: #232524; border-color: #626864; color: #a7ada9; box-shadow: none; }
-.analyzing .tile-play { opacity: .65; padding: 6px 30px 24px 48px; }
+.analyzing .tile-play { opacity: .65; padding-right: 30px; }
 .analyzing .tile-name { -webkit-line-clamp: 2; font-size: 12px; line-height: 18px; }
 .analysis-spinner { color: #a7ada9; display: flex; align-items: center; }
 .analysis-spinner svg { animation: analysis-spin 1.1s linear infinite; }
-.analysis-progress { position: absolute; bottom: 7px; left: 45px; font-size: 11px; line-height: 16px; }
-.cancel-analysis { position: absolute; top: 3px; right: 3px; color: #c3c9c5; }
-.cancel-analysis:hover { color: #fff; background: #424844; }
+.cancel-analysis { position: absolute; top: 3px; right: 3px; color: #e87878; }
+.cancel-analysis:hover { color: #ffaaaa; }
 .procedural-icon { display: block; position: relative; }
 .procedural-icon svg:last-child { position: absolute; right: -3px; top: -7px; }
 @keyframes analysis-spin { to { transform: rotate(360deg); } }
