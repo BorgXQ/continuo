@@ -4,15 +4,16 @@ import type { useSettings } from './useSettings';
 
 function Duration({ label, value, disabled, change }: { label: string; value: number; disabled: boolean; change: (value: number) => void }) {
   const [draft, setDraft] = useState<string | null>(null);
-  return <label className="dialog-field">{label} (seconds)
-    <input type="number" min="0" step="any" disabled={disabled} value={draft ?? value}
+  return <label className="duration-field"><span>{label}</span>
+    <span className="volume-value duration-value"><input aria-label={`${label} (milliseconds)`} type="number" min="0" step="any" disabled={disabled} value={draft ?? Number((value * 1000).toPrecision(15))}
+      onFocus={event => event.currentTarget.select()}
       onChange={event => {
         setDraft(event.currentTarget.value);
-        const seconds = event.currentTarget.valueAsNumber;
-        if (Number.isFinite(seconds) && seconds >= 0) change(seconds);
+        const milliseconds = event.currentTarget.valueAsNumber;
+        if (Number.isFinite(milliseconds) && milliseconds >= 0) change(milliseconds / 1000);
       }}
       onBlur={() => setDraft(null)}
-      onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} />
+      onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} /><span>ms</span></span>
   </label>;
 }
 

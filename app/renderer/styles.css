@@ -45,6 +45,9 @@ p { margin: 4px 0; }
 .credits .settings-button { display: flex; justify-content: flex-end; padding: 0; margin-left: auto; color: #98a69b; }
 .settings-button:hover { color: #eeeeee; }
 .configuration-fields { display: grid; gap: 20px; }
+.duration-field { display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 13px; }
+.duration-value { gap: 4px; min-width: 0; }
+.configuration-fields .duration-value input { width: 9ch; max-width: 100%; }
 .configuration-fields input:invalid { border-color: #f19999; }
 
 .panel { position: relative; border: 1px solid #909792; min-width: 0; }

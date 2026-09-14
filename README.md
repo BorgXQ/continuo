@@ -3,7 +3,7 @@
 ## Desktop App
 
 The gear above the version opens Configuration. Global fade-in and fade-out
-durations are in seconds, default to zero, and save automatically to SQLite.
+durations are displayed in milliseconds, default to zero, and save automatically to SQLite.
 Fade-in applies when playback starts; Stop keeps the track playing while it
 fades out. Another track can fade in simultaneously. Press Stop again to stop
 immediately. Mode switches do not restart the envelope. One-time tracks still
