@@ -8,14 +8,14 @@ From PowerShell in the repository:
 
 ```powershell
 npm ci
-py -3.11 -m venv .venv-bt
-.\.venv-bt\Scripts\python.exe -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
-.\.venv-bt\Scripts\python.exe -m pip install -r requirements.txt "pyinstaller>=6,<7"
-.\.venv-bt\Scripts\python.exe -m pip check
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt "pyinstaller>=6,<7"
+.\.venv\Scripts\python.exe -m pip check
 Get-Command ffmpeg.exe, ffprobe.exe
 npm run typecheck
 npm test
-.\.venv-bt\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py'
+.\.venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py'
 npm run build:backend
 .\dist\continuo-analysis\continuo-analysis.exe "C:\Music\your-track.mp3"
 ```
@@ -36,7 +36,7 @@ The installer is under `out/make/squirrel.windows/x64/`. The backend folder is
 included automatically. Packaged Windows builds use it, never system Python or
 CONTINUO_PYTHON. Development still uses the existing Python launch mechanism.
 Rebuild the backend whenever Python source or dependencies change.
-The build script prefers CONTINUO_PYTHON, then .venv-bt, then .venv. It downloads
+The build script uses CONTINUO_PYTHON when set, otherwise .venv. It downloads
 and validates Beat This!'s small0 checkpoint and includes it and its MIT license
 in the bundle. This download requires internet access during the build, not
 during installed-app analysis. The DBN uses madmom code, not madmom model files;

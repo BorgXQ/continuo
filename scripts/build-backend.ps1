@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 Set-Location (Join-Path $PSScriptRoot '..')
-$python = if ($env:CONTINUO_PYTHON) { $env:CONTINUO_PYTHON } elseif (Test-Path '.\.venv-bt\Scripts\python.exe') { '.\.venv-bt\Scripts\python.exe' } else { '.\.venv\Scripts\python.exe' }
+$python = if ($env:CONTINUO_PYTHON) { $env:CONTINUO_PYTHON } else { '.\.venv\Scripts\python.exe' }
 if (!(Test-Path $python)) { throw 'Create the Windows .venv and install requirements.txt first.' }
 $ffmpeg = (Get-Command ffmpeg.exe -ErrorAction Stop).Source
 $ffprobe = (Get-Command ffprobe.exe -ErrorAction Stop).Source
