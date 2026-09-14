@@ -169,7 +169,8 @@ export function Soundtracks({ library }: { library: Library }) {
       <div className="track-grid">
         {library.slots.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((track, offset) => {
           const index = page * PAGE_SIZE + offset;
-          const active = track ? Boolean(library.playing[track.id]) : false;
+          const session = track ? library.playing[track.id] : undefined;
+          const active = Boolean(session && !session.stopping);
           return (
             <div key={index} data-slot={index} aria-busy={Boolean(track?.job)} className={`track-tile ${track ? 'filled' : 'empty'} ${active ? 'playing' : ''} ${track?.job ? 'analyzing' : ''} ${dragging === index ? 'dragging' : ''} ${dropTarget === index ? 'drop-target' : ''}`}
               draggable={Boolean(track)} onDragStart={event => { setDragging(index); event.dataTransfer.setData('text/plain', String(index)); event.dataTransfer.effectAllowed = 'move'; }}

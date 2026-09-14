@@ -121,7 +121,9 @@ export function useTracks() {
   async function toggle(track: Track) {
     if (loading || settings.loading || track.missing) return;
     if (busy(track.id)) return;
-    if (sessions.current.has(track.id)) return stop(track.id);
+    const previous = sessions.current.get(track.id);
+    if (previous && !previous.stopping) return stop(track.id);
+    if (previous) finish(track.id);
     if (track.mode === 'procedural' && track.analysis?.startBar == null) return;
     const ready = prepare(track);
     const ctx = context.current!;
@@ -164,6 +166,7 @@ export function useTracks() {
       },
     };
     sessions.current.set(track.id, session);
+    setPlaying(Object.fromEntries(sessions.current));
     const current = () => sessions.current.get(track.id) === session;
     const fail = (message: string) => {
       if (!current()) return;
