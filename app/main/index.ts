@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { app, BrowserWindow } from 'electron';
 import squirrelStartup from 'electron-squirrel-startup';
+import { registerAnalysis } from './analysis';
 
 function createWindow(): void {
   const window = new BrowserWindow({
@@ -16,6 +17,7 @@ function createWindow(): void {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
+      backgroundThrottling: false,
     },
   });
 
@@ -34,6 +36,7 @@ if (squirrelStartup) {
   app.quit();
 } else {
   void app.whenReady().then(() => {
+    registerAnalysis();
     createWindow();
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();

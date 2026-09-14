@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DragEvent, KeyboardEvent } from 'react';
-import { ArrowLeft, ArrowRight, Infinity as InfinityIcon, Keyboard, Pencil, Plus, Repeat, Slash, Sparkles, Trash2, X } from 'lucide-react';
-import { PAGE_SIZE } from './useTracks';
+import { ArrowLeft, ArrowRight, Infinity as InfinityIcon, Keyboard, LoaderCircle, Pencil, Plus, Repeat, Slash, Sparkles, Trash2, X } from 'lucide-react';
+import { MODE_LABELS, PAGE_SIZE } from './useTracks';
 import type { Track, useTracks } from './useTracks';
 
 type Library = ReturnType<typeof useTracks>;
@@ -69,6 +69,7 @@ export function Soundtracks({ library }: { library: Library }) {
   const pageDirection = useRef(0);
   const lastScroll = useRef(0);
   const pages = library.slots.length / PAGE_SIZE;
+  const menuTrack = menu ? library.slots.find(track => track?.id === menu.track.id) : null;
 
   function clearPageTimer() {
     if (pageTimer.current) clearTimeout(pageTimer.current);
@@ -154,7 +155,7 @@ export function Soundtracks({ library }: { library: Library }) {
           const index = page * PAGE_SIZE + offset;
           const active = track ? Boolean(library.playing[track.id]) : false;
           return (
-            <div key={index} data-slot={index} className={`track-tile ${track ? 'filled' : 'empty'} ${active ? 'playing' : ''} ${dragging === index ? 'dragging' : ''} ${dropTarget === index ? 'drop-target' : ''}`}
+            <div key={index} data-slot={index} aria-busy={Boolean(track?.job)} className={`track-tile ${track ? 'filled' : 'empty'} ${active ? 'playing' : ''} ${track?.job ? 'analyzing' : ''} ${dragging === index ? 'dragging' : ''} ${dropTarget === index ? 'drop-target' : ''}`}
               draggable={Boolean(track)} onDragStart={event => { setDragging(index); event.dataTransfer.setData('text/plain', String(index)); event.dataTransfer.effectAllowed = 'move'; }}
               onDragEnd={() => { setDragging(null); setDropTarget(null); clearPageTimer(); }}
               onDragEnter={() => setDropTarget(index)} onDrop={event => drop(event, index)}
@@ -163,12 +164,18 @@ export function Soundtracks({ library }: { library: Library }) {
                 if (track) setMenu({ track, x: Math.max(8, Math.min(event.clientX, window.innerWidth - 240)), y: Math.max(8, Math.min(event.clientY, window.innerHeight - 204)) });
               }}>
               {track ? <>
-                <button className="tile-play" aria-label={`${active ? 'Stop' : 'Play'} ${track.name}`} aria-pressed={active} title={track.name} onClick={() => void library.toggle(track)}>
+                <button className="tile-play" disabled={Boolean(track.job)} aria-label={`${active ? 'Stop' : 'Play'} ${track.name}`} aria-pressed={active} title={track.name} onClick={() => void library.toggle(track)}>
                   <span className="tile-name">{track.name}</span>
                 </button>
-                <button className="loop-button" aria-label={`Loop mode for ${track.name}: ${track.loop ? 'Normal Loop' : 'One Time'}`} title={`${track.loop ? 'Normal Loop' : 'One Time'}; click to change`} onClick={() => library.update(track.id, { loop: !track.loop })}>
-                  {track.loop ? <InfinityIcon size={20} /> : <span className="loop-off"><Repeat size={19} /><Slash size={19} /></span>}
-                </button>
+                {track.job ? <>
+                  <span className="loop-button analysis-spinner"><LoaderCircle size={20} /></span>
+                  <span className="analysis-progress" role="progressbar" aria-label={`${track.job.state === 'queued' ? 'Queued' : 'Analyzing'} ${track.name}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={track.job.progress} title={`${track.job.stage}; progress reflects completed analysis stages`}>
+                    {track.job.state === 'queued' ? 'Queued ' : ''}{track.job.progress}%
+                  </span>
+                  <button className="cancel-analysis icon-button" title="Cancel analysis" aria-label={`Cancel analysis for ${track.name}`} onClick={() => void library.cancelAnalysis(track)}><X size={16} /></button>
+                </> : <button className="loop-button" aria-label={`Loop mode for ${track.name}: ${MODE_LABELS[track.mode]}`} title={`${MODE_LABELS[track.mode]}; click to change`} onClick={() => library.cycleMode(track)}>
+                  {track.mode === 'procedural' ? <span className="procedural-icon"><InfinityIcon size={20} /><Sparkles size={11} /></span> : track.mode === 'loop' ? <InfinityIcon size={20} /> : <span className="loop-off"><Repeat size={19} /><Slash size={19} /></span>}
+                </button>}
               </> : <button className="add-track" onClick={() => { pickSlot.current = index; picker.current?.click(); }}><Plus size={21} /> Add Track</button>}
             </div>
           );
@@ -188,7 +195,10 @@ export function Soundtracks({ library }: { library: Library }) {
         }
       }}>
         <button role="menuitem" onClick={() => { setEdit({ kind: 'rename', track: menu.track }); setMenu(null); }}><Pencil size={16} /> Rename</button>
-        <button role="menuitem" disabled title="Analysis is not connected yet"><Sparkles size={16} /> Analyze</button>
+        <button role="menuitem" onClick={() => {
+          if (menuTrack) void (menuTrack.job ? library.cancelAnalysis(menuTrack) : library.analyze(menuTrack));
+          setMenu(null);
+        }}>{menuTrack?.job ? <X size={16} /> : <Sparkles size={16} />}{menuTrack?.job ? 'Cancel analysis' : menuTrack?.analysis ? 'Reanalyze' : 'Analyze'}</button>
         <button role="menuitem" onClick={() => { setEdit({ kind: 'shortcut', track: menu.track }); setMenu(null); }}><Keyboard size={16} /> Assign shortcut</button>
         <button role="menuitem" className="danger" onClick={() => { setEdit({ kind: 'delete', track: menu.track }); setMenu(null); }}><Trash2 size={16} /> Delete</button>
       </div>}

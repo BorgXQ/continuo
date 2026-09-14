@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Square } from 'lucide-react';
 import type { Playback, Track } from './useTracks';
+import { MODE_LABELS } from './useTracks';
 
 function Spectrum({ session }: { session?: Playback }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -76,7 +77,7 @@ export function NowPlaying({ tracks, playing, stop, volume }: Props) {
             <button className="track-metadata" aria-label={`Focus ${track.name}`} title={`Focus ${track.name}`} onClick={() => { setSelected(track.id); setExpanded(false); }}>
               <span className="metadata-label">Track</span><span className="track-name">{track.name}</span>
               <span className="metadata-label">Time</span><span><Elapsed started={playing[track.id].started} /></span>
-              <span className="metadata-label">Status</span><span className="status">{track.loop ? 'Normal Loop' : 'One Time'}</span>
+              <span className="metadata-label">Status</span><span className="status">{MODE_LABELS[playing[track.id].mode]}</span>
             </button>
             <div className="track-controls">
               <label htmlFor={`volume-${track.id}`}>Volume <output>{track.volume}%</output></label>

@@ -12,6 +12,7 @@
     "postinstall": "node node_modules/electron/install.js",
     "dev": "electron-forge start",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.json",
+    "test": "node --experimental-transform-types --test tests/*.test.ts",
     "build": "npm run typecheck && electron-forge package",
     "start": "electron-forge start",
     "package": "electron-forge package",

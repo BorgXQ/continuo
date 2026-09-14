@@ -7,7 +7,7 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     executableName: 'infiticum',
-    extraResource: ['assets/fonts/ibm-plex-mono/LICENSE.txt'],
+    extraResource: ['assets/fonts/ibm-plex-mono/LICENSE.txt', 'src', 'requirements.txt'],
   },
   rebuildConfig: {},
   makers: [
