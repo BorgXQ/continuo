@@ -9,6 +9,7 @@
     "node": ">=24.0.0 <25"
   },
   "scripts": {
+    "build:backend": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-backend.ps1",
     "postinstall": "node node_modules/electron/install.js",
     "dev": "electron-forge start",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.json",

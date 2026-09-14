@@ -34,7 +34,10 @@ export function registerAnalysis(): void {
     const root = app.isPackaged ? process.resourcesPath : app.getAppPath();
     const localPython = join(root, '.venv', process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
     const python = process.env.CONTINUO_PYTHON || (existsSync(localPython) ? localPython : process.platform === 'win32' ? 'python' : 'python3');
-    const child = spawn(python, ['-B', '-u', '-m', 'src.analysis_worker', job.path], {
+    const bundled = app.isPackaged && process.platform === 'win32';
+    const executable = bundled ? join(root, 'continuo-analysis', 'continuo-analysis.exe') : python;
+    const args = bundled ? [job.path] : ['-B', '-u', '-m', 'src.analysis_worker', job.path];
+    const child = spawn(executable, args, {
       cwd: root,
       windowsHide: true,
       detached: process.platform !== 'win32',
@@ -58,7 +61,10 @@ export function registerAnalysis(): void {
         else if (message.state === 'failed') failure = String(message.message);
       } catch { failure = 'Invalid response from the analysis worker.'; }
     });
-    child.on('error', error => { failure = `Cannot start Python analysis: ${error.message}. Check CONTINUO_PYTHON and requirements.txt.`; });
+    child.on('error', error => {
+      failure = bundled ? `Cannot start bundled analysis: ${error.message}. Reinstall Continuo.`
+        : `Cannot start Python analysis: ${error.message}. Check CONTINUO_PYTHON and requirements.txt.`;
+    });
     child.on('close', code => {
       lines.close();
       if (!job.cancelled && !job.owner.isDestroyed()) {

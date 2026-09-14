@@ -10,4 +10,6 @@ test.ipynb
 node_modules/
 .vite/
 out/
+build/
+dist/
 *.tsbuildinfo
