@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DragEvent, KeyboardEvent } from 'react';
-import { ArrowLeft, ArrowRight, Keyboard, LoaderCircle, Pencil, Plus, Repeat, Slash, Sparkles, Trash2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, FileWarning, FolderSearch, Keyboard, LoaderCircle, Pencil, Plus, Repeat, Slash, Sparkles, Trash2, X } from 'lucide-react';
 import { MODE_LABELS, PAGE_SIZE } from './useTracks';
 import type { Track, useTracks } from './useTracks';
 
@@ -63,6 +63,8 @@ export function Soundtracks({ library }: { library: Library }) {
   const [menu, setMenu] = useState<{ track: Track; x: number; y: number } | null>(null);
   const [edit, setEdit] = useState<Edit | null>(null);
   const picker = useRef<HTMLInputElement>(null);
+  const locatePicker = useRef<HTMLInputElement>(null);
+  const locateTrack = useRef<Track | null>(null);
   const pickSlot = useRef(0);
   const menuRef = useRef<HTMLDivElement>(null);
   const pageTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -146,6 +148,11 @@ export function Soundtracks({ library }: { library: Library }) {
       }}
       onDrop={event => { event.preventDefault(); clearPageTimer(); setDragging(null); setDropTarget(null); }}>
       <h2 className="panel-title" id="soundtracks-title">SOUNDTRACKS</h2>
+      <input ref={locatePicker} type="file" accept=".mp3,audio/mpeg" hidden aria-label="Locate missing MP3" onChange={event => {
+        const file = event.target.files?.[0];
+        if (file && locateTrack.current) library.locate(locateTrack.current, file);
+        event.target.value = '';
+      }} />
       <input ref={picker} type="file" accept=".mp3,audio/mpeg" multiple hidden aria-label="Select MP3 files" onChange={event => {
         library.add(Array.from(event.target.files ?? []), pickSlot.current);
         event.target.value = '';
@@ -161,19 +168,20 @@ export function Soundtracks({ library }: { library: Library }) {
               onDragEnter={() => setDropTarget(index)} onDrop={event => drop(event, index)}
               onContextMenu={event => {
                 event.preventDefault();
-                if (track) setMenu({ track, x: Math.max(8, Math.min(event.clientX, window.innerWidth - 240)), y: Math.max(8, Math.min(event.clientY, window.innerHeight - 204)) });
+                if (track) setMenu({ track, x: Math.max(8, Math.min(event.clientX, window.innerWidth - 240)), y: Math.max(8, Math.min(event.clientY, window.innerHeight - 248)) });
               }}>
               {track ? <>
-                <button className="tile-play" disabled={Boolean(track.job)} aria-label={`${active ? 'Stop' : 'Play'} ${track.name}`} aria-pressed={active} title={track.name} onClick={() => void library.toggle(track)}>
+                {track.missing && <span className="missing-file" title="MP3 missing or changed; locate the file from the track menu" role="img" aria-label="MP3 missing or changed"><FileWarning size={16} /></span>}
+                <button className="tile-play" disabled={Boolean(track.job) || track.missing} aria-label={`${active ? 'Stop' : 'Play'} ${track.name}`} aria-pressed={active} title={track.missing ? `${track.name}: MP3 missing or changed` : track.name} onClick={() => void library.toggle(track)}>
                   <span className="tile-name">{track.name}</span>
                 </button>
                 {track.job ? <>
                   <span className="loop-button analysis-spinner" role="status" aria-label={`${track.job.state === 'queued' ? 'Queued' : 'Analyzing'} ${track.name}`} title={track.job.stage}><LoaderCircle size={20} /></span>
                   <button className="cancel-analysis icon-button" title="Cancel analysis" aria-label={`Cancel analysis for ${track.name}`} onClick={() => void library.cancelAnalysis(track)}><X size={16} /></button>
-                </> : <button className="loop-button" aria-label={`Loop mode for ${track.name}: ${MODE_LABELS[track.mode]}`} title={`${MODE_LABELS[track.mode]}; click to change`} onClick={() => library.cycleMode(track)}>
+                </> : <button className="loop-button" disabled={track.missing} aria-label={`Loop mode for ${track.name}: ${MODE_LABELS[track.mode]}`} title={`${MODE_LABELS[track.mode]}; click to change`} onClick={() => library.cycleMode(track)}>
                   {track.mode === 'procedural' ? <span className="procedural-icon"><Repeat size={19} /><Sparkles size={11} /></span> : track.mode === 'loop' ? <Repeat size={19} /> : <span className="loop-off"><Repeat size={19} /><Slash size={19} /></span>}
                 </button>}
-              </> : <button className="add-track" onClick={() => { pickSlot.current = index; picker.current?.click(); }}><Plus size={21} /> Add Track</button>}
+              </> : <button className="add-track" disabled={library.loading} onClick={() => { pickSlot.current = index; picker.current?.click(); }}><Plus size={21} /> Add Track</button>}
             </div>
           );
         })}
@@ -192,10 +200,11 @@ export function Soundtracks({ library }: { library: Library }) {
         }
       }}>
         <button role="menuitem" onClick={() => { setEdit({ kind: 'rename', track: menu.track }); setMenu(null); }}><Pencil size={16} /> Rename</button>
-        <button role="menuitem" onClick={() => {
+        <button role="menuitem" disabled={menuTrack?.missing} onClick={() => {
           if (menuTrack) void (menuTrack.job ? library.cancelAnalysis(menuTrack) : library.analyze(menuTrack));
           setMenu(null);
         }}>{menuTrack?.job ? <X size={16} /> : <Sparkles size={16} />}{menuTrack?.job ? 'Cancel analysis' : menuTrack?.analysis ? 'Reanalyze' : 'Analyze'}</button>
+        <button role="menuitem" onClick={() => { locateTrack.current = menuTrack ?? null; locatePicker.current?.click(); setMenu(null); }}><FolderSearch size={16} /> Locate file</button>
         <button role="menuitem" onClick={() => { setEdit({ kind: 'shortcut', track: menu.track }); setMenu(null); }}><Keyboard size={16} /> Assign shortcut</button>
         <button role="menuitem" className="danger" onClick={() => { setEdit({ kind: 'delete', track: menu.track }); setMenu(null); }}><Trash2 size={16} /> Delete</button>
       </div>}

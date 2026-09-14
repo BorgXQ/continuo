@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { AnalysisBridge, AnalysisEvent } from '../shared/analysis';
+import type { LibraryBridge } from '../shared/library';
 
 const bridge: AnalysisBridge = {
   filePath: file => webUtils.getPathForFile(file),
@@ -13,3 +14,11 @@ const bridge: AnalysisBridge = {
 };
 
 contextBridge.exposeInMainWorld('analysis', bridge);
+
+const library: LibraryBridge = {
+  load: () => ipcRenderer.invoke('library:load'),
+  save: tracks => ipcRenderer.invoke('library:save', tracks),
+  flush: tracks => ipcRenderer.sendSync('library:flush', tracks),
+  read: id => ipcRenderer.invoke('library:read', id),
+};
+contextBridge.exposeInMainWorld('library', library);

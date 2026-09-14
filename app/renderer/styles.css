@@ -89,6 +89,8 @@ input:disabled { cursor: default; }
 .analysis-spinner svg { animation: analysis-spin 1.1s linear infinite; }
 .cancel-analysis { position: absolute; top: 3px; right: 3px; color: #e87878; }
 .cancel-analysis:hover { color: #ffaaaa; }
+.missing-file { position: absolute; top: 7px; right: 7px; color: #f19999; }
+.missing-file + .tile-play { padding-right: 30px; }
 .procedural-icon { display: block; position: relative; width: 19px; height: 19px; }
 .procedural-icon svg:last-child { position: absolute; right: -3px; top: -7px; }
 @keyframes analysis-spin { to { transform: rotate(360deg); } }

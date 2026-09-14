@@ -1,7 +1,8 @@
 import { join } from 'node:path';
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, dialog } from 'electron';
 import squirrelStartup from 'electron-squirrel-startup';
 import { registerAnalysis } from './analysis';
+import { registerLibrary } from './library';
 
 function createWindow(): void {
   const window = new BrowserWindow({
@@ -34,13 +35,25 @@ function createWindow(): void {
 
 if (squirrelStartup) {
   app.quit();
+} else if (!app.requestSingleInstanceLock()) {
+  app.quit();
 } else {
+  app.on('second-instance', () => {
+    const window = BrowserWindow.getAllWindows()[0];
+    if (window?.isMinimized()) window.restore();
+    window?.show();
+    window?.focus();
+  });
   void app.whenReady().then(() => {
+    registerLibrary();
     registerAnalysis();
     createWindow();
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
+  }).catch(error => {
+    dialog.showErrorBox('Cannot open Infiticum', String(error));
+    app.quit();
   });
 }
 

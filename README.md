@@ -25,10 +25,17 @@ region, playback continues naturally until it can enter that region (wrapping
 at the end if necessary). Initial playback may wait if import preparation is
 still running; replay and mode changes reuse the prepared audio.
 Analysis currently assumes 4/4 time, matching the notebook prototype.
-Tracks, results, and queues exist only in memory and clear when the app closes
-or reloads. No graph or audio snippets are saved.
+Tracks, tile positions, names, volumes, shortcuts, playback modes, and completed
+analysis are saved automatically in `library.sqlite` inside Electron's user-data
+directory (`~/.config/infiticum` on Linux, `%APPDATA%/infiticum` on Windows,
+`~/Library/Application Support/infiticum` on macOS). SQLite stores bar boundaries
+and alternative edges; natural edges are reconstructed. No audio is stored.
+Original MP3s are required. Missing files remain visible; use **Locate file** in
+the track menu to replace their paths. Relinking, or a changed file size or
+modification time at startup, clears old analysis so it can be rerun safely.
+Playback and queued/running jobs do not resume on startup. Completed results do.
 
-Run `npm run typecheck` and `npm test` to check TypeScript and procedural playback.
+Run `npm run typecheck` and `npm test` to check TypeScript, SQLite storage, and playback.
 
 ```txt
 data/

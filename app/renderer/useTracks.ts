@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { AnalysisResult } from '../shared/analysis';
 import { loadAudioWorklet, prepareAudio, type PreparedAudio } from './preparedAudio';
 import type { PlayMode } from './proceduralEngine';
+import type { SavedTrack } from '../shared/library';
 
 export type { PlayMode } from './proceduralEngine';
 export const MODE_LABELS: Record<PlayMode, string> = { once: 'One Time', loop: 'Normal Loop', procedural: 'Procedural Loop' };
@@ -9,7 +10,10 @@ export const MODE_LABELS: Record<PlayMode, string> = { once: 'One Time', loop: '
 export interface Track {
   id: string;
   name: string;
-  file: File;
+  file?: File;
+  size: number;
+  modified: number;
+  missing?: boolean;
   path: string;
   mode: PlayMode;
   volume: number;
@@ -30,7 +34,10 @@ export interface Playback {
 export const PAGE_SIZE = 16;
 
 export function useTracks() {
-  const [slots, setSlots] = useState<(Track | null)[]>(Array(PAGE_SIZE * 6).fill(null));
+  const [slots, renderSlots] = useState<(Track | null)[]>(Array(PAGE_SIZE * 6).fill(null));
+  const slotState = useRef(slots);
+  const loaded = useRef(false);
+  const [loading, setLoading] = useState(true);
   const [playing, setPlaying] = useState<Record<string, Playback>>({});
   const [error, setError] = useState('');
   const context = useRef<AudioContext | null>(null);
@@ -38,6 +45,29 @@ export function useTracks() {
   const prepared = useRef(new Map<string, Promise<PreparedAudio>>());
   const sessions = useRef(new Map<string, Playback>());
   const jobs = useRef(new Map<string, string>());
+  const lastSaved = useRef('');
+
+  function snapshot(): SavedTrack[] {
+    return slotState.current.flatMap((track, slot) => track ? [{
+      id: track.id, slot, name: track.name, path: track.path, mode: track.mode,
+      volume: track.volume, shortcut: track.shortcut, size: track.size,
+      modified: track.modified, analysis: track.analysis,
+    }] : []);
+  }
+
+  function setSlots(change: (previous: (Track | null)[]) => (Track | null)[]) {
+    slotState.current = change(slotState.current);
+    renderSlots(slotState.current);
+    if (!loaded.current || !window.library) return;
+    const tracks = snapshot();
+    const serialized = JSON.stringify(tracks);
+    if (serialized === lastSaved.current) return;
+    lastSaved.current = serialized;
+    void window.library.save(tracks).catch(cause => {
+      lastSaved.current = '';
+      setError(`Cannot save library: ${String(cause)}`);
+    });
+  }
 
   function patch(id: string, changes: Partial<Track>) {
     setSlots(previous => previous.map(track => track?.id === id ? { ...track, ...changes } : track));
@@ -59,7 +89,10 @@ export function useTracks() {
       module.current = null;
       throw error;
     });
-    const promise = prepareAudio(ctx, track.file, module.current).then(audio => {
+    const file = track.file ? Promise.resolve(track.file) : window.library!.read(track.id)
+      .then(bytes => new File([new Uint8Array(bytes)], track.name + '.mp3', { type: 'audio/mpeg', lastModified: track.modified }))
+      .catch(cause => { patch(track.id, { missing: true }); throw cause; });
+    const promise = Promise.all([file, module.current]).then(([file]) => prepareAudio(ctx, file, Promise.resolve())).then(audio => {
       if (prepared.current.get(track.id) !== promise) {
         audio.dispose();
         throw new Error('Track preparation was cancelled.');
@@ -74,6 +107,7 @@ export function useTracks() {
   }
 
   async function toggle(track: Track) {
+    if (loading || track.missing) return;
     if (busy(track.id)) return;
     if (sessions.current.has(track.id)) return stop(track.id);
     if (track.mode === 'procedural' && track.analysis?.startBar == null) return;
@@ -141,12 +175,14 @@ export function useTracks() {
   }
 
   function add(files: File[], start: number) {
+    if (!loaded.current) return;
     const accepted = files.filter(file => /\.mp3$/i.test(file.name));
     if (accepted.length !== files.length) setError('Only MP3 files can be added.');
     const tracks: Track[] = accepted.map(file => {
       return {
         id: crypto.randomUUID(), name: file.name.replace(/\.mp3$/i, ''),
         file, path: window.analysis?.filePath(file) ?? '',
+        size: file.size, modified: file.lastModified,
         mode: 'once', volume: 100, shortcut: null,
       };
     });
@@ -171,7 +207,7 @@ export function useTracks() {
   }
 
   function cycleMode(track: Track) {
-    if (busy(track.id)) return;
+    if (busy(track.id) || track.missing) return;
     const mode: PlayMode = track.mode === 'once' ? 'loop'
       : track.mode === 'loop' && track.analysis?.startBar != null ? 'procedural' : 'once';
     patch(track.id, { mode });
@@ -182,7 +218,7 @@ export function useTracks() {
   }
 
   async function analyze(track: Track) {
-    if (busy(track.id)) return;
+    if (busy(track.id) || track.missing) return;
     if (!window.analysis) { setError('Analysis is available in the desktop app.'); return; }
     const id = crypto.randomUUID();
     jobs.current.set(id, track.id);
@@ -221,6 +257,53 @@ export function useTracks() {
     });
   }
 
+  function locate(track: Track, file: File) {
+    if (!/\.mp3$/i.test(file.name)) { setError('Select an MP3 file.'); return; }
+    void cancelAnalysis(track);
+    for (const [job, id] of jobs.current) if (id === track.id) jobs.current.delete(job);
+    stop(track.id);
+    const previous = prepared.current.get(track.id);
+    prepared.current.delete(track.id);
+    void previous?.then(audio => audio.dispose()).catch(() => {});
+    const replacement: Track = {
+      ...track, file, path: window.analysis?.filePath(file) ?? '', size: file.size, modified: file.lastModified,
+      missing: false, analysis: undefined, job: undefined, mode: track.mode === 'procedural' ? 'once' : track.mode,
+    };
+    patch(track.id, replacement);
+    void prepare(replacement).catch(() => {});
+  }
+
+  useEffect(() => {
+    let disposed = false;
+    if (window.library) {
+      void window.library.load().then(tracks => {
+        if (disposed) return;
+        const restored: (Track | null)[] = Array(Math.max(PAGE_SIZE * 6, Math.ceil(((tracks.at(-1)?.slot ?? 0) + 1) / PAGE_SIZE) * PAGE_SIZE)).fill(null);
+        for (const track of tracks) restored[track.slot] = track;
+        slotState.current = restored;
+        renderSlots(restored);
+        lastSaved.current = JSON.stringify(snapshot());
+        loaded.current = true;
+        setLoading(false);
+        for (const track of restored) if (track && !track.missing) void prepare(track).catch(() => {});
+      }).catch(cause => {
+        if (!disposed) setError(`Cannot load library: ${String(cause)}. Restart the app to retry.`);
+      });
+    } else { loaded.current = true; setLoading(false); }
+    const flush = (event: BeforeUnloadEvent) => {
+      if (loaded.current && window.library) {
+        const failure = window.library.flush(snapshot());
+        if (failure) {
+          event.preventDefault();
+          event.returnValue = '';
+          setError(`Cannot save library: ${failure}`);
+        }
+      }
+    };
+    window.addEventListener('beforeunload', flush);
+    return () => { disposed = true; window.removeEventListener('beforeunload', flush); };
+  }, []);
+
   useEffect(() => {
     const unsubscribe = window.analysis?.onUpdate(event => {
       const trackId = jobs.current.get(event.id);
@@ -258,5 +341,5 @@ export function useTracks() {
     };
   }, []);
 
-  return { slots, playing, error, setError, add, toggle, stop, update, remove, swap, analyze, cancelAnalysis, cycleMode };
+  return { slots, loading, playing, error, setError, add, toggle, stop, update, remove, swap, analyze, cancelAnalysis, cycleMode, locate };
 }
