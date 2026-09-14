@@ -82,3 +82,40 @@ test('moving tiles updates positions without rewriting analysis', () => {
     assert.deepEqual(store.load(), [track('b', 0), track('a', 40)]);
   } finally { store.close(); }
 });
+
+test('audio settings default to zero and reject negative or non-finite durations', () => {
+  const store = new LibraryStore(':memory:');
+  try {
+    assert.deepEqual(store.loadSettings(), { fadeIn: 0, fadeOut: 0 });
+    store.saveSettings({ fadeIn: 1.25, fadeOut: 2.5 });
+    store.save([track()]);
+    assert.deepEqual(store.loadSettings(), { fadeIn: 1.25, fadeOut: 2.5 });
+    for (const value of [-1, NaN, Infinity]) {
+      assert.throws(() => store.saveSettings({ fadeIn: value, fadeOut: 0 }));
+      assert.throws(() => store.saveSettings({ fadeIn: 0, fadeOut: value }));
+    }
+    assert.deepEqual(store.loadSettings(), { fadeIn: 1.25, fadeOut: 2.5 });
+  } finally { store.close(); }
+});
+
+test('upgrading a version-one library preserves tracks and persists new settings', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'continuo-settings-'));
+  const path = join(directory, 'library.sqlite');
+  try {
+    const initial = new LibraryStore(path);
+    initial.save([track()]);
+    initial.close();
+    const old = new DatabaseSync(path);
+    old.exec('DROP TABLE audio_settings; PRAGMA user_version = 1;');
+    old.close();
+    const upgraded = new LibraryStore(path);
+    assert.deepEqual(upgraded.load(), [track()]);
+    assert.deepEqual(upgraded.loadSettings(), { fadeIn: 0, fadeOut: 0 });
+    upgraded.saveSettings({ fadeIn: 0.75, fadeOut: 3 });
+    upgraded.close();
+    const reopened = new LibraryStore(path);
+    assert.deepEqual(reopened.loadSettings(), { fadeIn: 0.75, fadeOut: 3 });
+    assert.deepEqual(reopened.load(), [track()]);
+    reopened.close();
+  } finally { rmSync(directory, { recursive: true }); }
+});

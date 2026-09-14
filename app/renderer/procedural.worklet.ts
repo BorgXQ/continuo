@@ -1,4 +1,5 @@
 import { ProceduralEngine } from './proceduralEngine';
+import { AudioEnvelope } from './audioEnvelope';
 
 declare const sampleRate: number;
 declare class AudioWorkletProcessor { readonly port: MessagePort }
@@ -9,6 +10,7 @@ class ProceduralProcessor extends AudioWorkletProcessor {
   private playing = false;
   private disposed = false;
   private token = '';
+  private readonly envelope = new AudioEnvelope(sampleRate);
 
   constructor() {
     super();
@@ -23,7 +25,12 @@ class ProceduralProcessor extends AudioWorkletProcessor {
         if (message.stop) { this.playing = false; this.engine?.reset(); }
         if (message.analysis) this.engine?.setAnalysis(message.analysis);
         if (message.mode) this.engine?.setMode(message.mode);
-        if (message.play) { this.token = message.token; this.playing = true; }
+        if (message.play) {
+          this.token = message.token;
+          this.envelope.start(message.fadeIn ?? 0);
+          this.playing = true;
+        }
+        if (message.fadeOut !== undefined && this.playing) this.envelope.stop(message.fadeOut);
       } catch (error) {
         this.playing = false;
         this.port.postMessage({ state: 'failed', message: String(error) });
@@ -35,9 +42,10 @@ class ProceduralProcessor extends AudioWorkletProcessor {
     try {
       if (this.playing) {
         this.engine?.render(outputs[0]);
-        if (this.engine?.ended) {
+        const fadedOut = this.envelope.process(outputs[0]);
+        if (this.engine?.ended || fadedOut) {
           this.playing = false;
-          this.engine.reset();
+          this.engine?.reset();
           this.port.postMessage({ state: 'ended', token: this.token });
         }
       }

@@ -3,7 +3,7 @@ import { mkdirSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { LibraryStore } from './libraryStore';
-import type { SavedTrack } from '../shared/library';
+import type { AudioSettings, SavedTrack } from '../shared/library';
 
 export function registerLibrary(): void {
   mkdirSync(app.getPath('userData'), { recursive: true });
@@ -11,6 +11,12 @@ export function registerLibrary(): void {
   function authorize(event: IpcMainEvent | IpcMainInvokeEvent) {
     if (event.senderFrame !== event.sender.mainFrame) throw new Error('Library requests must come from the main window.');
   }
+  ipcMain.handle('settings:load', event => { authorize(event); return store.loadSettings(); });
+  ipcMain.handle('settings:save', (event, settings: AudioSettings) => { authorize(event); store.saveSettings(settings); });
+  ipcMain.on('settings:flush', (event, settings: AudioSettings) => {
+    try { authorize(event); store.saveSettings(settings); event.returnValue = null; }
+    catch (error) { event.returnValue = String(error); }
+  });
   ipcMain.handle('library:load', event => {
     authorize(event);
     const tracks = store.load().map(track => {

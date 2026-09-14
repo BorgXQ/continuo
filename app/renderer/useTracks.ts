@@ -3,6 +3,7 @@ import type { AnalysisResult } from '../shared/analysis';
 import { loadAudioWorklet, prepareAudio, type PreparedAudio } from './preparedAudio';
 import type { PlayMode } from './proceduralEngine';
 import type { SavedTrack } from '../shared/library';
+import { useSettings } from './useSettings';
 
 export type { PlayMode } from './proceduralEngine';
 export const MODE_LABELS: Record<PlayMode, string> = { once: 'One Time', loop: 'Normal Loop', procedural: 'Procedural Loop' };
@@ -23,6 +24,8 @@ export interface Track {
 }
 
 export interface Playback {
+  stopping: boolean;
+  fadeOut: (seconds: number) => boolean;
   setMode: (mode: PlayMode, analysis?: AnalysisResult) => void;
   gain: GainNode;
   analyser: AnalyserNode;
@@ -40,6 +43,7 @@ export function useTracks() {
   const [loading, setLoading] = useState(true);
   const [playing, setPlaying] = useState<Record<string, Playback>>({});
   const [error, setError] = useState('');
+  const settings = useSettings(setError);
   const context = useRef<AudioContext | null>(null);
   const module = useRef<Promise<void> | null>(null);
   const prepared = useRef(new Map<string, Promise<PreparedAudio>>());
@@ -75,10 +79,18 @@ export function useTracks() {
 
   function busy(id: string) { return [...jobs.current.values()].includes(id); }
 
-  function stop(id: string) {
+  function finish(id: string) {
     sessions.current.get(id)?.dispose();
     sessions.current.delete(id);
     setPlaying(Object.fromEntries(sessions.current));
+  }
+
+  function stop(id: string) {
+    const session = sessions.current.get(id);
+    if (!session) return;
+    if (!session.stopping && session.fadeOut(settings.current.current.fadeOut)) {
+      setPlaying(Object.fromEntries(sessions.current));
+    } else finish(id);
   }
 
   function prepare(track: Track): Promise<PreparedAudio> {
@@ -107,7 +119,7 @@ export function useTracks() {
   }
 
   async function toggle(track: Track) {
-    if (loading || track.missing) return;
+    if (loading || settings.loading || track.missing) return;
     if (busy(track.id)) return;
     if (sessions.current.has(track.id)) return stop(track.id);
     if (track.mode === 'procedural' && track.analysis?.startBar == null) return;
@@ -122,6 +134,13 @@ export function useTracks() {
     let analysis = track.analysis;
     const token = crypto.randomUUID();
     const session: Playback = {
+      stopping: false,
+      fadeOut: seconds => {
+        if (!audio || seconds === 0) return false;
+        session.stopping = true;
+        audio.node.port.postMessage({ fadeOut: seconds });
+        return true;
+      },
       gain, analyser, mode: track.mode, started: performance.now(),
       setMode: (mode, result) => {
         session.mode = mode;
@@ -148,7 +167,7 @@ export function useTracks() {
     const current = () => sessions.current.get(track.id) === session;
     const fail = (message: string) => {
       if (!current()) return;
-      stop(track.id);
+      finish(track.id);
       if (audio) {
         prepared.current.delete(track.id);
         audio.dispose();
@@ -162,11 +181,11 @@ export function useTracks() {
       audio.node.connect(analyser);
       audio.node.onprocessorerror = () => fail('Audio processing failed.');
       audio.node.port.onmessage = event => {
-        if (event.data.state === 'ended' && event.data.token === token && current()) stop(track.id);
+        if (event.data.state === 'ended' && event.data.token === token && current()) finish(track.id);
         else if (event.data.state === 'failed') fail(String(event.data.message));
       };
       session.setMode(session.mode, analysis);
-      audio.node.port.postMessage({ play: true, token });
+      audio.node.port.postMessage({ play: true, token, fadeIn: settings.current.current.fadeIn });
       session.started = performance.now();
       setPlaying(Object.fromEntries(sessions.current));
     } catch (cause) {
@@ -242,7 +261,7 @@ export function useTracks() {
   function remove(track: Track) {
     void cancelAnalysis(track);
     for (const [job, id] of jobs.current) if (id === track.id) jobs.current.delete(job);
-    stop(track.id);
+    finish(track.id);
     const audio = prepared.current.get(track.id);
     prepared.current.delete(track.id);
     void audio?.then(player => player.dispose()).catch(() => {});
@@ -263,7 +282,7 @@ export function useTracks() {
     if (!/\.mp3$/i.test(file.name)) { setError('Select an MP3 file.'); return; }
     void cancelAnalysis(track);
     for (const [job, id] of jobs.current) if (id === track.id) jobs.current.delete(job);
-    stop(track.id);
+    finish(track.id);
     const previous = prepared.current.get(track.id);
     prepared.current.delete(track.id);
     void previous?.then(audio => audio.dispose()).catch(() => {});
@@ -343,5 +362,5 @@ export function useTracks() {
     };
   }, []);
 
-  return { slots, loading, playing, error, setError, add, toggle, stop, update, remove, swap, analyze, cancelAnalysis, cycleMode, locate };
+  return { slots, loading, settings, playing, error, setError, add, toggle, stop, update, remove, swap, analyze, cancelAnalysis, cycleMode, locate };
 }

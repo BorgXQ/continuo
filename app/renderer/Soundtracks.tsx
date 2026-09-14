@@ -83,6 +83,7 @@ export function Soundtracks({ library }: { library: Library }) {
   useEffect(() => () => clearPageTimer(), []);
   useEffect(() => {
     function keydown(event: globalThis.KeyboardEvent) {
+      if (document.querySelector('dialog[open]')) return;
       if (edit || menu || event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
       if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return;
       const track = library.slots.find(item => item?.shortcut === event.code);

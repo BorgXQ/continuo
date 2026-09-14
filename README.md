@@ -2,6 +2,13 @@
 
 ## Desktop App
 
+The gear above the version opens Configuration. Global fade-in and fade-out
+durations are in seconds, default to zero, and save automatically to SQLite.
+Fade-in applies when playback starts; Stop keeps the track playing while it
+fades out. Another track can fade in simultaneously. Press Stop again to stop
+immediately. Mode switches do not restart the envelope. One-time tracks still
+end at the end of the file; deleting a track or quitting stops it immediately.
+
 Use Node 24 and run `npm install`, then `npm start` (Electron Forge).
 Analysis requires Python 3.9 with the dependencies in `requirements.txt`.
 The app uses `.venv/bin/python` (`.venv/Scripts/python.exe` on Windows) when

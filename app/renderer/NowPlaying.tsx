@@ -114,11 +114,11 @@ export function NowPlaying({ tracks, playing, stop, volume }: Props) {
             <button className="track-metadata" aria-label={`Focus ${track.name}`} title={`Focus ${track.name}`} onClick={() => { setSelected(track.id); setExpanded(false); }}>
               <span className="metadata-label">Track</span><span className="track-name">{track.name}</span>
               <span className="metadata-label">Time</span><span><Elapsed started={playing[track.id].started} /></span>
-              <span className="metadata-label">Status</span><span className="status">{MODE_LABELS[playing[track.id].mode]}</span>
+              <span className="metadata-label">Status</span><span className="status">{playing[track.id].stopping ? 'Fading out' : MODE_LABELS[playing[track.id].mode]}</span>
             </button>
             <div className="track-controls">
               <VolumeControl track={track} change={value => volume(track.id, value)} />
-              <button className="stop-button" title={`Stop ${track.name}`} aria-label={`Stop ${track.name}`} onClick={() => stop(track.id)}><Square size={15} /> Stop</button>
+              <button className="stop-button" title={playing[track.id].stopping ? `Stop ${track.name} immediately` : `Stop ${track.name}`} aria-label={`Stop ${track.name}`} onClick={() => stop(track.id)}><Square size={15} /> Stop</button>
             </div>
           </div>
         )) : (

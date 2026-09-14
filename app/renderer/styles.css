@@ -42,6 +42,10 @@ header {
 h1 { display: flex; gap: 0.2em; margin: 0 0 8px; font-size: 40px; font-weight: 600; }
 p { margin: 4px 0; }
 .credits { margin-left: auto; text-align: right; color: #bcbcbc; }
+.credits .settings-button { display: flex; margin-left: auto; color: #98a69b; }
+.settings-button:hover { color: #eeeeee; }
+.configuration-fields { display: grid; gap: 20px; }
+.configuration-fields input:invalid { border-color: #f19999; }
 
 .panel { position: relative; border: 1px solid #909792; min-width: 0; }
 .panel-title { position: absolute; top: -14px; left: 12px; margin: 0; padding: 0 8px; background: #111111; font-size: 18px; font-weight: 400; line-height: 26px; z-index: 1; }
