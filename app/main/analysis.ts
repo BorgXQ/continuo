@@ -32,7 +32,8 @@ export function registerAnalysis(): void {
     if (!job) return;
     if (job.cancelled || job.owner.isDestroyed()) { advance(); return; }
     const root = app.isPackaged ? process.resourcesPath : app.getAppPath();
-    const localPython = join(root, '.venv', process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
+    const environment = existsSync(join(root, '.venv-bt')) ? '.venv-bt' : '.venv';
+    const localPython = join(root, environment, process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
     const python = process.env.CONTINUO_PYTHON || (existsSync(localPython) ? localPython : process.platform === 'win32' ? 'python' : 'python3');
     const bundled = app.isPackaged && process.platform === 'win32';
     const executable = bundled ? join(root, 'continuo-analysis', 'continuo-analysis.exe') : python;
