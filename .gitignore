@@ -1,4 +1,5 @@
 .venv/
+.venv-bt/
 data/
 
 project_idea.md
