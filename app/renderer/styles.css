@@ -119,8 +119,13 @@ dialog p { font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
 .dialog-field { display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
 .dialog-field input { width: 100%; padding: 12px; border: 1px solid #606f64; border-radius: 0; background: #111; color: #e4eae6; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
-.dialog-actions button { padding: 8px 14px; border: 1px solid #506157; font-size: 13px; }
+.dialog-actions button { padding: 8px 14px; border: 1px solid #506157; font-size: 13px; transition: background-color .12s, border-color .12s, transform .08s; }
+.dialog-actions button:hover:not(:disabled) { background: #eeeeee14; border-color: #929b95; }
+.dialog-actions button:active:not(:disabled) { transform: translateY(2px); }
 .dialog-actions .primary { color: #91e0ab; border-color: #669376; }
+.dialog-actions .primary:hover:not(:disabled) { background: #91e0ab18; border-color: #91e0ab; }
+.dialog-actions .danger { border-color: #b47e73; }
+.dialog-actions .danger:hover:not(:disabled) { background: #f1999918; border-color: #f19999; }
 .error { color: #f19999; }
 .toast { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); display: flex; align-items: center; gap: 20px; padding: 14px 18px; border: 1px solid #b47e73; background: #261e1c; font-size: 13px; z-index: 10; }
 .toast span { overflow-wrap: anywhere; }
