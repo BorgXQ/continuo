@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { app, BrowserWindow, dialog } from 'electron';
+import { app, BrowserWindow, dialog, Menu } from 'electron';
 import squirrelStartup from 'electron-squirrel-startup';
 import { registerAnalysis } from './analysis';
 import { registerLibrary } from './library';
@@ -47,6 +47,7 @@ if (squirrelStartup) {
   void app.whenReady().then(() => {
     registerLibrary();
     registerAnalysis();
+    Menu.setApplicationMenu(null);
     createWindow();
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
