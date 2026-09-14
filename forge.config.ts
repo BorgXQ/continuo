@@ -8,7 +8,6 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     executableName: 'continuo',
-    ignore: [/^\/(?:\.venv|data|build|dist|tests|scripts)(?:\/|$)/, /\.ipynb$/],
     icon: process.platform === 'win32' ? 'assets/logo_white.ico' : process.platform === 'linux' ? 'assets/logo_white.png' : undefined,
     extraResource: ['assets/fonts/ibm-plex-mono/LICENSE.txt', 'assets/logo_white.png', 'assets/logo_white.ico', 'src', 'requirements.txt',
       ...(process.platform === 'win32' ? ['dist/continuo-analysis'] : [])],
