@@ -19,15 +19,15 @@ test('zero defaults leave playback unchanged and stop immediately', () => {
   assert.deepEqual([...result.values], [0, 0, 0, 0]);
 });
 
-test('fade-in and fade-out span audio blocks and reach their targets', () => {
+test('S-curve fades ease at both ends, span audio blocks and reach their targets', () => {
   const envelope = new AudioEnvelope(1000);
   envelope.start(0.008);
-  assert.deepEqual([...render(envelope, 4).values], [0, 0.125, 0.25, 0.375]);
-  assert.deepEqual([...render(envelope, 5).values], [0.5, 0.625, 0.75, 0.875, 1]);
+  assert.deepEqual([...render(envelope, 4).values], [0, 0.04296875, 0.15625, 0.31640625]);
+  assert.deepEqual([...render(envelope, 5).values], [0.5, 0.68359375, 0.84375, 0.95703125, 1]);
   envelope.stop(0.004);
-  assert.deepEqual([...render(envelope, 2).values], [1, 0.75]);
+  assert.deepEqual([...render(envelope, 2).values], [1, 0.84375]);
   const result = render(envelope, 4);
-  assert.deepEqual([...result.values], [0.5, 0.25, 0, 0]);
+  assert.deepEqual([...result.values], [0.5, 0.15625, 0, 0]);
   assert(result.stopped);
 });
 
@@ -36,10 +36,10 @@ test('stopping during fade-in starts from the current level, without a jump', ()
   envelope.start(0.008);
   render(envelope, 4);
   envelope.stop(0.004);
-  assert.deepEqual([...render(envelope, 2).values], [0.5, 0.375]);
+  assert.deepEqual([...render(envelope, 2).values], [0.5, 0.421875]);
   envelope.stop(10);
   const result = render(envelope, 3);
-  assert.deepEqual([...result.values], [0.25, 0.125, 0]);
+  assert.deepEqual([...result.values], [0.25, 0.078125, 0]);
   assert(result.stopped);
   envelope.start(0);
   assert.equal(render(envelope, 1).values[0], 1);
