@@ -57,6 +57,43 @@ interface Props {
   volume: (id: string, value: number) => void;
 }
 
+function VolumeControl({ track, change }: { track: Track; change: (value: number) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  return <>
+    <div className="volume-label">
+      <label htmlFor={`volume-${track.id}`}>Volume</label>
+      <span className="volume-value"><input
+        aria-label={`Volume percentage for ${track.name}`} type="number" min="0" max="150" step="1"
+        value={draft ?? track.volume}
+        onFocus={event => { setDraft(event.currentTarget.value); event.currentTarget.select(); }}
+        onChange={event => setDraft(event.currentTarget.value)}
+        onBlur={event => {
+          const value = event.currentTarget.valueAsNumber;
+          if (Number.isFinite(value)) change(Math.max(0, Math.min(150, Math.round(value))));
+          setDraft(null);
+        }}
+        onKeyDown={event => {
+          if (event.key === 'Escape') event.currentTarget.value = String(track.volume);
+          if (event.key === 'Enter' || event.key === 'Escape') event.currentTarget.blur();
+        }}
+      />%</span>
+    </div>
+    <input id={`volume-${track.id}`} aria-label={`Volume for ${track.name}`} type="range" min="0" max="150" value={track.volume}
+      onChange={event => {
+        const value = Number(event.target.value);
+        change(Math.abs(value - 100) <= 3 ? 100 : value);
+      }}
+      onKeyDown={event => {
+        // Keep keyboard steps precise so snapping cannot trap the slider at 100%.
+        if (['ArrowLeft', 'ArrowDown', 'ArrowRight', 'ArrowUp'].includes(event.key)) {
+          event.preventDefault();
+          change(Math.max(0, Math.min(150, track.volume + (['ArrowLeft', 'ArrowDown'].includes(event.key) ? -1 : 1))));
+        }
+      }}
+    />
+  </>;
+}
+
 export function NowPlaying({ tracks, playing, stop, volume }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -80,8 +117,7 @@ export function NowPlaying({ tracks, playing, stop, volume }: Props) {
               <span className="metadata-label">Status</span><span className="status">{MODE_LABELS[playing[track.id].mode]}</span>
             </button>
             <div className="track-controls">
-              <label htmlFor={`volume-${track.id}`}>Volume <output>{track.volume}%</output></label>
-              <input id={`volume-${track.id}`} aria-label={`Volume for ${track.name}`} type="range" min="0" max="150" value={track.volume} onChange={event => volume(track.id, Number(event.target.value))} />
+              <VolumeControl track={track} change={value => volume(track.id, value)} />
               <button className="stop-button" title={`Stop ${track.name}`} aria-label={`Stop ${track.name}`} onClick={() => stop(track.id)}><Square size={15} /> Stop</button>
             </div>
           </div>
