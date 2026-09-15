@@ -2,6 +2,28 @@
 
 Notable user-facing changes to Continuo are recorded here.
 
+## 1.1.0
+
+### Added
+
+- Discord bot login and voice-channel discovery, grouped by server.
+- Discord voice output with the same track mix, volume, fades, and procedural transitions as local playback.
+- OS-encrypted bot credential storage and automatic login on startup when secure storage is available.
+- Retained, masked token field for reconnecting without retyping during a session.
+
+### Changed
+
+- Soundtrack rows, columns, and page count adapt to available space, including when NOW PLAYING expands.
+- Compact pagination keeps navigation visible without overflowing the soundtrack grid.
+- New libraries provide 96 soundtrack slots; existing larger libraries remain intact.
+
+### Output Behavior
+
+- Each launch defaults to Device output; Discord voice channels must be selected manually.
+- Selecting Device output or quitting leaves the voice channel. Voice connection failures restore local output.
+- Disconnecting the bot disables automatic login, while retaining its token in memory until the app closes.
+- Systems without a secure credential store support session-only bot login.
+
 ## 1.0.0
 
 Initial local-playback release for Windows x64.
