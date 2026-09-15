@@ -51,28 +51,12 @@ If no channels appear, check that you invited the bot to the correct server and 
 
 ## Behavior
 
-- Closing Configuration leaves the bot logged in and retains its displayed status.
-- Successful login saves an OS-encrypted token for automatic login on startup.
-  Quitting closes the connection; reopening the app connects again.
-- Disconnect (or Cancel) removes the saved token and disables automatic login,
-  but retains it in memory for the current app session. Click Connect again to
-  reuse it, or enter a replacement token. A successful connection saves it again.
-- Cancel stops a pending connection. Network reconnection has a timeout.
-- Tokens are stored in `discord-token.enc` in the app's user-data directory using
-  Electron safeStorage, never in SQLite or logs. Linux requires a secure keyring;
-  without one (including some WSL setups), login is session-only and a warning
-  appears. The insecure `basic_text` fallback is not used.
-- The password field contains the actual token, masked by the browser. It stays
-  locked while connected and becomes editable after disconnecting. Copy, cut,
-  and dragging are blocked, but masking does not prevent extraction through
-  developer tools. The decrypted token is held in renderer memory; disk storage
-  remains encrypted. Error messages do not expose raw API errors.
-- Output selection is never saved. Quitting leaves the voice channel; reopening
-  requires manually selecting a voice channel again.
-- Volume, simultaneous tracks, procedural transitions, and fades apply to Discord
-  output too. Switching outputs does not restart tracks. Discord adds network latency.
-- Failed or lost voice connections restore Device output. A firewall must allow
-  Discord's voice UDP traffic; server mute and channel permissions can prevent sound.
+- **Connection:** Closing Configuration keeps the bot online. Quitting disconnects it; successful login enables automatic login next launch. Pending connections can be cancelled, and reconnection attempts time out.
+- **Disconnect / Cancel:** Removes saved credentials and disables automatic login, but keeps the token for reuse during this session. Successful reconnection saves it again.
+- **Storage:** Electron safeStorage encrypts `discord-token.enc` in the app's user-data directory, not SQLite or logs. Without secure storage, including some WSL setups without a keyring, login is session-only with a warning; no insecure fallback is used.
+- **Token field:** Masked and locked while connected; editable after disconnecting. Copy, cut, and dragging are blocked, but the decrypted token remains accessible through developer tools. Raw API errors are not displayed.
+- **Output:** Every launch defaults to Device output. Choose a voice channel manually; quitting leaves it, and voice failures restore local playback.
+- **Playback:** Volume, track mixing, transitions, and fades apply to Discord. Switching outputs preserves playback position; Discord adds network latency. If silent, check voice UDP firewall access, server mute, and channel permissions.
 
 ## References
 
