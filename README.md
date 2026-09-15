@@ -76,6 +76,8 @@ Analysis uses Beat This! `small0` on CPU, followed by a DBN configured for four-
 
 ## Development
 
+Discord bot login and channel discovery are in development on this branch. See [Discord setup](docs/discord.md). Discord audio streaming is not yet available.
+
 The desktop app uses **Electron Forge**, **React**, **TypeScript**, and **Vite**. Analysis uses **Python 3.11** and the packages in `requirements.txt`.
 
 On **Linux/WSL**, create a virtual environment, install CPU-only PyTorch and torchaudio, then install the analysis dependencies. Windows developers should follow [Building for Windows](docs/windows-release.md).
