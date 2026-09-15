@@ -20,7 +20,7 @@ Continuo plays local MP3s and finds alternative transitions within each track, l
 
 ## Install
 
-Continuo v1.0.0 targets **Windows x64**. Published installers are available from [GitHub Releases](https://github.com/BorgXQ/continuo/releases). Once the v1.0.0 release is published, download its Setup `.exe`, run it, and open Continuo.
+Continuo targets **Windows x64**. Download the Setup `.exe` for your chosen version from [GitHub Releases](https://github.com/BorgXQ/continuo/releases), run it, and open Continuo.
 
 ## Start Playing
 
@@ -47,7 +47,7 @@ Click the gear icon above the version number to configure transition crossfade a
 - Fade-in (default: 0 ms) softens the start of playback.
 - Fade-out (default: 0 ms) continues playback after Stop is pressed, gradually reducing it to silence. It does not automatically fade the natural end of a file.
 - Press Stop again in NOW PLAYING to end a fade-out immediately.
-- Output currently has one option: **Device output**, using the system default.
+- **Device output** uses the system default audio device. Connect a Discord bot to select an accessible voice channel instead; see [Discord setup](docs/discord.md).
 
 ## Your Library
 
@@ -75,8 +75,6 @@ The Python pipeline in `src/` compares musical context across bars. The desktop 
 Analysis uses Beat This! `small0` on CPU, followed by a DBN configured for four-beat bars. Not every track yields a safe procedural loop, and similar accompaniment does not guarantee seamless solo or melody continuation. Tracks without a safe loop remain playable in the other modes.
 
 ## Development
-
-Discord bot login and voice output are in development on this branch. See [Discord setup](docs/discord.md). Each launch defaults to Device output; Discord voice channels must be selected manually.
 
 The desktop app uses **Electron Forge**, **React**, **TypeScript**, and **Vite**. Analysis uses **Python 3.11** and the packages in `requirements.txt`.
 
