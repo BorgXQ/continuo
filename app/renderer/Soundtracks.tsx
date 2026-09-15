@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { DragEvent, KeyboardEvent } from 'react';
 import { ArrowLeft, ArrowRight, FileWarning, FolderSearch, Keyboard, LoaderCircle, Pencil, Plus, Repeat, Slash, Sparkles, Trash2, X } from 'lucide-react';
-import { MODE_LABELS, PAGE_SIZE } from './useTracks';
+import { MODE_LABELS } from './useTracks';
+import { pageNumbers, soundtrackLayout } from './soundtrackLayout';
 import type { Track, useTracks } from './useTracks';
 
 type Library = ReturnType<typeof useTracks>;
@@ -59,6 +60,9 @@ function TrackDialog({ edit, close, library }: { edit: Edit; close: () => void; 
 
 export function Soundtracks({ library }: { library: Library }) {
   const [page, setPage] = useState(0);
+  const grid = useRef<HTMLDivElement>(null);
+  const [layout, setLayout] = useState({ columns: 4, rows: 4, size: 16 });
+  const size = useRef(layout.size);
   const [dragging, setDragging] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<number | null>(null);
   const [menu, setMenu] = useState<{ track: Track; x: number; y: number } | null>(null);
@@ -71,7 +75,7 @@ export function Soundtracks({ library }: { library: Library }) {
   const pageTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pageDirection = useRef(0);
   const lastScroll = useRef(0);
-  const pages = library.slots.length / PAGE_SIZE;
+  const pages = Math.ceil(library.slots.length / layout.size);
   const menuTrack = menu ? library.slots.find(track => track?.id === menu.track.id) : null;
 
   function clearPageTimer() {
@@ -81,6 +85,22 @@ export function Soundtracks({ library }: { library: Library }) {
   }
 
   useEffect(() => () => clearPageTimer(), []);
+  useEffect(() => {
+    const element = grid.current!;
+    const observer = new ResizeObserver(() => {
+      const next = soundtrackLayout(element.clientWidth, element.clientHeight, parseFloat(getComputedStyle(element).gap));
+      if (next.size !== size.current) {
+        const previous = size.current;
+        size.current = next.size;
+        setPage(page => Math.min(Math.ceil(library.slots.length / next.size) - 1, Math.floor(page * previous / next.size)));
+        clearPageTimer();
+        setDropTarget(null);
+      }
+      setLayout(previous => previous.columns === next.columns && previous.rows === next.rows ? previous : next);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [library.slots.length]);
   useEffect(() => {
     function keydown(event: globalThis.KeyboardEvent) {
       if (document.querySelector('dialog[open]')) return;
@@ -166,9 +186,9 @@ export function Soundtracks({ library }: { library: Library }) {
         library.add(Array.from(event.target.files ?? []), pickSlot.current);
         event.target.value = '';
       }} />
-      <div className="track-grid">
-        {library.slots.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((track, offset) => {
-          const index = page * PAGE_SIZE + offset;
+      <div ref={grid} className="track-grid" style={{ gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))` }}>
+        {library.slots.slice(page * layout.size, (page + 1) * layout.size).map((track, offset) => {
+          const index = page * layout.size + offset;
           const session = track ? library.playing[track.id] : undefined;
           const active = Boolean(session && !session.stopping);
           return (
@@ -198,7 +218,7 @@ export function Soundtracks({ library }: { library: Library }) {
       </div>
       <nav className="pagination" aria-label="Soundtrack pages">
         <button className="icon-button" aria-label="Previous page" title="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)}><ArrowLeft size={16} /></button>
-        <div className="page-numbers">{Array.from({ length: pages }, (_, index) => <button key={index} aria-label={`Page ${index + 1}`} aria-current={page === index ? 'page' : undefined} onClick={() => setPage(index)}>{index + 1}</button>)}</div>
+        <div className="page-numbers">{pageNumbers(page, pages).map((index, position) => index === 'gap' ? <span key={`gap-${position}`} aria-hidden="true">...</span> : <button key={index} aria-label={`Page ${index + 1}`} aria-current={page === index ? 'page' : undefined} onClick={() => setPage(index)}>{index + 1}</button>)}</div>
         <button className="icon-button" aria-label="Next page" title="Next page" disabled={page === pages - 1} onClick={() => setPage(page + 1)}><ArrowRight size={16} /></button>
       </nav>
       {menu && <div ref={menuRef} className="context-menu" role="menu" aria-label={`Actions for ${menu.track.name}`} style={{ left: menu.x, top: menu.y }} onKeyDown={event => {

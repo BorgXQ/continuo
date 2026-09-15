@@ -1,4 +1,4 @@
-# Windows v1.0.0 Build
+# Windows v1.1.0 Build
 
 Build on Windows x64. End users should not need Python, Node, or FFmpeg.
 

@@ -20,7 +20,7 @@ Continuo plays local MP3s and finds alternative transitions within each track, l
 
 ## Install
 
-Continuo v1.0.0 targets **Windows x64**. Published installers are available from [GitHub Releases](https://github.com/BorgXQ/continuo/releases). Once the v1.0.0 release is published, download its Setup `.exe`, run it, and open Continuo.
+Continuo targets **Windows x64**. Download the Setup `.exe` for your chosen version from [GitHub Releases](https://github.com/BorgXQ/continuo/releases), run it, and open Continuo.
 
 ## Start Playing
 
@@ -47,7 +47,7 @@ Click the gear icon above the version number to configure transition crossfade a
 - Fade-in (default: 0 ms) softens the start of playback.
 - Fade-out (default: 0 ms) continues playback after Stop is pressed, gradually reducing it to silence. It does not automatically fade the natural end of a file.
 - Press Stop again in NOW PLAYING to end a fade-out immediately.
-- Output currently has one option: **Device output**, using the system default.
+- **Device output** uses the system default audio device. Connect a Discord bot to select an accessible voice channel instead; see [Discord setup](docs/discord.md).
 
 ## Your Library
 
