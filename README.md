@@ -76,7 +76,7 @@ Analysis uses Beat This! `small0` on CPU, followed by a DBN configured for four-
 
 ## Development
 
-Discord bot login and channel discovery are in development on this branch. See [Discord setup](docs/discord.md). Discord audio streaming is not yet available.
+Discord bot login and voice output are in development on this branch. See [Discord setup](docs/discord.md). Each launch defaults to Device output; Discord voice channels must be selected manually.
 
 The desktop app uses **Electron Forge**, **React**, **TypeScript**, and **Vite**. Analysis uses **Python 3.11** and the packages in `requirements.txt`.
 
