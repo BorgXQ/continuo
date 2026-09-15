@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { LoaderCircle, X } from 'lucide-react';
 import type { useSettings } from './useSettings';
-import { useDiscord } from './useDiscord';
+import type { useDiscord } from './useDiscord';
 
 function Duration({ label, value, disabled, change }: { label: string; value: number; disabled: boolean; change: (value: number) => void }) {
   const [draft, setDraft] = useState<string | null>(null);
@@ -18,10 +18,9 @@ function Duration({ label, value, disabled, change }: { label: string; value: nu
   </label>;
 }
 
-export function Configuration({ settings, close }: { settings: ReturnType<typeof useSettings>; close: () => void }) {
+export function Configuration({ settings, discord, close }: { settings: ReturnType<typeof useSettings>; discord: ReturnType<typeof useDiscord>; close: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [token, setToken] = useState('');
-  const discord = useDiscord();
   const connection = discord.status;
   const pending = connection === 'connecting' || connection === 'reconnecting';
   const servers = [...new Map(discord.channels.map(channel => [channel.serverId, channel.serverName])).entries()];
