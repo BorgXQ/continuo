@@ -6,7 +6,7 @@ const permissions = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connec
 export class DiscordConnection {
   private client: Client | null = null;
   private timer?: ReturnType<typeof setTimeout>;
-  private state: DiscordState = { revision: 0, status: 'disconnected', botName: null, channels: [], error: null };
+  private state: DiscordState = { revision: 0, hasToken: false, status: 'disconnected', botName: null, channels: [], error: null };
 
   constructor(
     private readonly publish: (state: DiscordState) => void,

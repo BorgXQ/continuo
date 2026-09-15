@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld('library', library);
 
 const discord: DiscordBridge = {
   getState: () => ipcRenderer.invoke('discord:state'),
+  getToken: () => ipcRenderer.invoke('discord:token'),
   connect: token => ipcRenderer.invoke('discord:connect', token),
   disconnect: () => ipcRenderer.invoke('discord:disconnect'),
   onUpdate: listener => {

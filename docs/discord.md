@@ -25,13 +25,19 @@ the bot has not been invited to a server or lacks the required permissions.
 - Closing Configuration leaves the bot logged in and retains its displayed status.
 - Successful login saves an OS-encrypted token for automatic login on startup.
   Quitting closes the connection; reopening the app connects again.
-- Disconnect (or Cancel) removes the saved token and disables automatic login.
+- Disconnect (or Cancel) removes the saved token and disables automatic login,
+  but retains it in memory for the current app session. Click Connect again to
+  reuse it, or enter a replacement token. A successful connection saves it again.
 - Cancel stops a pending connection. Network reconnection has a timeout.
 - Tokens are stored in `discord-token.enc` in the app's user-data directory using
   Electron safeStorage, never in SQLite or logs. Linux requires a secure keyring;
   without one (including some WSL setups), login is session-only and a warning
   appears. The insecure `basic_text` fallback is not used.
-- The token field clears on submission. Error messages do not expose raw API errors.
+- The password field contains the actual token, masked by the browser. It stays
+  locked while connected and becomes editable after disconnecting. Copy, cut,
+  and dragging are blocked, but masking does not prevent extraction through
+  developer tools. The decrypted token is held in renderer memory; disk storage
+  remains encrypted. Error messages do not expose raw API errors.
 - Selecting Discord as the actual audio output will be added in a later step.
 
 ## References

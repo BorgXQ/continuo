@@ -20,7 +20,7 @@ function Duration({ label, value, disabled, change }: { label: string; value: nu
 
 export function Configuration({ settings, discord, close }: { settings: ReturnType<typeof useSettings>; discord: ReturnType<typeof useDiscord>; close: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [token, setToken] = useState('');
+  const { token, setToken } = discord;
   const connection = discord.status;
   const pending = connection === 'connecting' || connection === 'reconnecting';
   const servers = [...new Map(discord.channels.map(channel => [channel.serverId, channel.serverName])).entries()];
@@ -31,7 +31,8 @@ export function Configuration({ settings, discord, close }: { settings: ReturnTy
       <div className="configuration-fields">
         <label className="duration-field"><span>Bot token</span>
           <input className="bot-token" type="password" autoComplete="off" spellCheck={false} value={token}
-            disabled={discord.loading || connection !== 'disconnected'} aria-label="Bot token" placeholder={connection === 'disconnected' ? 'Token' : pending ? 'Token submitted' : 'Token in use'}
+            disabled={discord.loading || connection !== 'disconnected'} aria-label="Bot token" placeholder="Token"
+            onCopy={event => event.preventDefault()} onCut={event => event.preventDefault()} onDragStart={event => event.preventDefault()}
             onChange={event => setToken(event.currentTarget.value)} />
         </label>
         <div className="duration-field"><span>Status</span>
@@ -45,7 +46,6 @@ export function Configuration({ settings, discord, close }: { settings: ReturnTy
             onClick={() => {
               if (connection !== 'disconnected') { void discord.disconnect(); return; }
               void discord.connect(token);
-              setToken('');
             }}>
             {pending ? 'Cancel' : connection === 'connected' ? 'Disconnect' : 'Connect'}
           </button>

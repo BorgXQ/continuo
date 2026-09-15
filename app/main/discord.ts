@@ -6,8 +6,9 @@ import { DiscordCredentials } from './discordCredentials';
 export function registerDiscord(): void {
   const credentials = new DiscordCredentials(join(app.getPath('userData'), 'discord-token.enc'), safeStorage);
   let pendingToken: string | null = null;
+  let retainedToken: string | null = null;
   let storageError: string | null = null;
-  const snapshot = () => ({ ...connection.getState(), error: connection.getState().error ?? storageError });
+  const snapshot = () => ({ ...connection.getState(), hasToken: retainedToken !== null, error: connection.getState().error ?? storageError });
   const connection = new DiscordConnection(state => {
     if (state.status === 'connected' && pendingToken !== null) {
       try { credentials.save(pendingToken); }
@@ -16,7 +17,7 @@ export function registerDiscord(): void {
     }
     if (state.status === 'disconnected') pendingToken = null;
     for (const window of BrowserWindow.getAllWindows()) {
-      if (!window.webContents.isDestroyed()) window.webContents.send('discord:update', { ...state, error: state.error ?? storageError });
+      if (!window.webContents.isDestroyed()) window.webContents.send('discord:update', snapshot());
     }
   });
   const authorize = (event: IpcMainInvokeEvent) => {
@@ -25,12 +26,16 @@ export function registerDiscord(): void {
     }
   };
   ipcMain.handle('discord:state', event => { authorize(event); return snapshot(); });
+  ipcMain.handle('discord:token', event => { authorize(event); return retainedToken ?? ''; });
   ipcMain.handle('discord:connect', (event, token: unknown) => {
     authorize(event);
     if (connection.getState().status !== 'disconnected') throw new Error('Already connected or connecting.');
     storageError = null;
-    pendingToken = typeof token === 'string' ? token.trim() : null;
-    try { connection.connect(token); }
+    const value = token === undefined ? retainedToken : token;
+    if (typeof value !== 'string' || !value.trim() || value.length > 4096 || /\s/.test(value.trim())) throw new Error('Enter a Discord bot token.');
+    retainedToken = value.trim();
+    pendingToken = retainedToken;
+    try { connection.connect(retainedToken); }
     catch { pendingToken = null; throw new Error('Unable to start Discord connection.'); }
   });
   ipcMain.handle('discord:disconnect', event => {
@@ -42,7 +47,7 @@ export function registerDiscord(): void {
   });
   try {
     const token = credentials.load();
-    if (token) connection.connect(token);
+    if (token) { retainedToken = token; connection.connect(token); }
   } catch { storageError = 'Saved Discord credentials could not be unlocked. Enter your bot token to reconnect.'; }
   app.on('before-quit', () => connection.disconnect());
 }

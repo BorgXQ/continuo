@@ -6,6 +6,7 @@ export interface DiscordChannel {
 }
 
 export interface DiscordState {
+  hasToken: boolean;
   revision: number;
   status: 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
   botName: string | null;
@@ -14,12 +15,13 @@ export interface DiscordState {
 }
 
 export const INITIAL_DISCORD_STATE: DiscordState = {
-  revision: 0, status: 'disconnected', botName: null, channels: [], error: null,
+  revision: 0, hasToken: false, status: 'disconnected', botName: null, channels: [], error: null,
 };
 
 export interface DiscordBridge {
+  getToken: () => Promise<string>;
   getState: () => Promise<DiscordState>;
-  connect: (token: string) => Promise<void>;
+  connect: (token?: string) => Promise<void>;
   disconnect: () => Promise<void>;
   onUpdate: (listener: (state: DiscordState) => void) => () => void;
 }
