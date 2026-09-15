@@ -46,6 +46,12 @@ p { margin: 4px 0; }
 .credits .settings-button { display: flex; justify-content: flex-end; padding: 0; margin-left: auto; color: #98a69b; }
 .settings-button:hover { color: #eeeeee; }
 .configuration-fields { display: grid; gap: 20px; }
+.configuration-divider { border-top: 1px solid #343b36; padding-top: 20px; }
+.bot-token { width: 20ch; min-width: 0; max-width: 60%; font: inherit; text-align: right; color: inherit; background: transparent; border: 0; border-bottom: 1px solid transparent; padding: 0; }
+.bot-token:hover, .bot-token:focus { border-bottom-color: #73cc90; }
+.connection-status { display: inline-flex; align-items: center; gap: 8px; }
+.dialog-actions.connection-actions { margin-top: 0; }
+.connection-actions button { min-width: 12ch; }
 .duration-field { display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 13px; }
 .duration-value { gap: 4px; min-width: 0; }
 .configuration-fields .duration-value input { width: 9ch; max-width: 100%; }
