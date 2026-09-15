@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs';
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
+    asar: { unpack: '**/*.node' },
     executableName: 'continuo',
     icon: process.platform === 'win32' ? 'assets/logo_white.ico' : process.platform === 'linux' ? 'assets/logo_white.png' : undefined,
     extraResource: ['LICENSE', 'NOTICE', 'assets/fonts/ibm-plex-mono/LICENSE.txt', 'assets/logo_white.png', 'assets/logo_white.ico', 'src', 'requirements.txt',
@@ -15,6 +15,7 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   hooks: {
     prePackage: async (_config, platform) => {
+      if (platform !== process.platform) throw new Error('Package on the target OS to include the matching Discord voice native module.');
       if (platform === 'win32' && (process.platform !== 'win32' || !existsSync('dist/continuo-analysis/continuo-analysis.exe'))) {
         throw new Error('Build the Windows backend on Windows with npm run build:backend first.');
       }

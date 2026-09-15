@@ -29,6 +29,8 @@ const library: LibraryBridge = {
 contextBridge.exposeInMainWorld('library', library);
 
 const discord: DiscordBridge = {
+  selectOutput: channelId => ipcRenderer.invoke('discord:output', channelId),
+  sendAudio: (channelId, bytes) => ipcRenderer.invoke('discord:audio', channelId, bytes),
   getState: () => ipcRenderer.invoke('discord:state'),
   getToken: () => ipcRenderer.invoke('discord:token'),
   connect: token => ipcRenderer.invoke('discord:connect', token),

@@ -11,13 +11,21 @@ export class DiscordConnection {
   constructor(
     private readonly publish: (state: DiscordState) => void,
     private readonly createClient = () => new Client({
-      intents: [GatewayIntentBits.Guilds],
+      intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
       rest: { timeout: 15000, retries: 0 },
     }),
     private readonly timeout = 30000,
   ) {}
 
   getState(): DiscordState { return this.state; }
+
+  voiceGuild(channelId: string) {
+    const channel = this.client?.channels.cache.get(channelId);
+    if (this.state.status !== 'connected' || channel?.type !== ChannelType.GuildVoice || !channel.guild.members.me || !channel.permissionsFor(channel.guild.members.me)?.has(permissions)) {
+      throw new Error('Voice channel is unavailable.');
+    }
+    return channel.guild;
+  }
 
   private update(change: Partial<DiscordState>): void {
     this.state = { ...this.state, ...change, revision: this.state.revision + 1 };

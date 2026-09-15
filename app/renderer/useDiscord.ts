@@ -35,5 +35,10 @@ export function useDiscord() {
     try { await window.discord!.disconnect(); }
     catch { setError('Cannot disconnect from Discord. Please retry.'); }
   }
-  return { ...state, token, setToken, error: error ?? state.error, loading, available: Boolean(window.discord), connect, disconnect };
+  async function selectOutput(channelId: string | null) {
+    setError(null);
+    try { await window.discord!.selectOutput(channelId); }
+    catch { setError('Cannot select Discord output. Check the connection and channel permissions.'); }
+  }
+  return { ...state, token, setToken, error: error ?? state.error ?? state.output?.error, loading, available: Boolean(window.discord), connect, disconnect, selectOutput };
 }

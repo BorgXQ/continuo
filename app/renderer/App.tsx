@@ -9,8 +9,8 @@ import type { Track } from './useTracks';
 import logo from '../../assets/logo_white.png';
 
 export function App() {
-  const library = useTracks();
   const discord = useDiscord();
+  const library = useTracks(discord.output?.ready ? discord.output.channelId : null);
   const [configurationOpen, setConfigurationOpen] = useState(false);
   const tracks = library.slots.filter((track): track is Track => track !== null && Boolean(library.playing[track.id]))
     .sort((a, b) => library.playing[b.id].focusedAt - library.playing[a.id].focusedAt);

@@ -53,10 +53,10 @@ export function Configuration({ settings, discord, close }: { settings: ReturnTy
         {discord.error && <p className="error" role="alert">{discord.error}</p>}
       </div>
       <label className="duration-field configuration-divider"><span>Output</span>
-        <select className="output-select" defaultValue="device"><option value="device">Device output</option>
+        <select className="output-select" value={discord.output?.channelId ?? 'device'} onChange={event => void discord.selectOutput(event.target.value === 'device' ? null : event.target.value)}><option value="device">Device output</option>
           {servers.map(([id, name]) => <optgroup key={id} label={name}>
             {discord.channels.filter(channel => channel.serverId === id).map(channel =>
-              <option key={channel.id} value={channel.id} disabled title="Audio routing is not yet available">{channel.name} (unavailable)</option>)}
+              <option key={channel.id} value={channel.id}>{channel.name}{discord.output?.channelId === channel.id && !discord.output.ready ? ' (connecting)' : ''}</option>)}
           </optgroup>)}
         </select>
       </label>

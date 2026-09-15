@@ -4,6 +4,7 @@ import { loadAudioWorklet, prepareAudio, type PreparedAudio } from './preparedAu
 import type { PlayMode } from './proceduralEngine';
 import type { SavedTrack } from '../shared/library';
 import { useSettings } from './useSettings';
+import { AudioOutput } from './audioOutput';
 
 export type { PlayMode } from './proceduralEngine';
 export const MODE_LABELS: Record<PlayMode, string> = { once: 'One Time', loop: 'Normal Loop', procedural: 'Procedural Loop' };
@@ -37,7 +38,7 @@ export interface Playback {
 
 export const PAGE_SIZE = 16;
 
-export function useTracks() {
+export function useTracks(outputChannel: string | null = null) {
   const [slots, renderSlots] = useState<(Track | null)[]>(Array(PAGE_SIZE * 6).fill(null));
   const slotState = useRef(slots);
   const loaded = useRef(false);
@@ -46,6 +47,10 @@ export function useTracks() {
   const [error, setError] = useState('');
   const settings = useSettings(setError);
   const context = useRef<AudioContext | null>(null);
+  const output = useRef<AudioOutput | null>(null);
+  const selectedOutput = useRef(outputChannel);
+  selectedOutput.current = outputChannel;
+  useEffect(() => { output.current?.select(outputChannel); }, [outputChannel]);
   const module = useRef<Promise<void> | null>(null);
   const prepared = useRef(new Map<string, Promise<PreparedAudio>>());
   const sessions = useRef(new Map<string, Playback>());
@@ -110,7 +115,11 @@ export function useTracks() {
   function prepare(track: Track): Promise<PreparedAudio> {
     const existing = prepared.current.get(track.id);
     if (existing) return existing;
-    const ctx = context.current ??= new AudioContext({ sampleRate: 44100 });
+    const ctx = context.current ??= new AudioContext({ sampleRate: 48000 });
+    if (!output.current) {
+      output.current = new AudioOutput(ctx);
+      output.current.select(selectedOutput.current);
+    }
     module.current ??= loadAudioWorklet(ctx).catch(error => {
       module.current = null;
       throw error;
@@ -118,7 +127,7 @@ export function useTracks() {
     const file = track.file ? Promise.resolve(track.file) : window.library!.read(track.id)
       .then(bytes => new File([new Uint8Array(bytes)], track.name + '.mp3', { type: 'audio/mpeg', lastModified: track.modified }))
       .catch(cause => { patch(track.id, { missing: true }); throw cause; });
-    const promise = Promise.all([file, module.current]).then(([file]) => prepareAudio(ctx, file, Promise.resolve())).then(audio => {
+    const promise = Promise.all([file, module.current, output.current.ready]).then(([file]) => prepareAudio(ctx, file, Promise.resolve())).then(audio => {
       if (prepared.current.get(track.id) !== promise) {
         audio.dispose();
         throw new Error('Track preparation was cancelled.');
@@ -145,7 +154,7 @@ export function useTracks() {
     gain.gain.value = track.volume / 100;
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 8192;
-    gain.connect(analyser).connect(ctx.destination);
+    gain.connect(analyser).connect(output.current!.input);
     let audio: PreparedAudio | undefined;
     let analysis = track.analysis;
     const token = crypto.randomUUID();
@@ -376,6 +385,7 @@ export function useTracks() {
       players.clear();
       void context.current?.close();
       context.current = null;
+      output.current = null;
       module.current = null;
     };
   }, []);

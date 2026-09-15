@@ -6,6 +6,7 @@ export interface DiscordChannel {
 }
 
 export interface DiscordState {
+  output?: { channelId: string | null; ready: boolean; error: string | null };
   hasToken: boolean;
   revision: number;
   status: 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
@@ -19,6 +20,8 @@ export const INITIAL_DISCORD_STATE: DiscordState = {
 };
 
 export interface DiscordBridge {
+  selectOutput: (channelId: string | null) => Promise<void>;
+  sendAudio: (channelId: string, bytes: Uint8Array) => Promise<void>;
   getToken: () => Promise<string>;
   getState: () => Promise<DiscordState>;
   connect: (token?: string) => Promise<void>;

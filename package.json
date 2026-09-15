@@ -21,9 +21,11 @@
     "make": "electron-forge make"
   },
   "dependencies": {
+    "@discordjs/voice": "0.19.2",
     "discord.js": "14.27.0",
     "electron-squirrel-startup": "1.0.1",
     "lucide-react": "1.45.0",
+    "opusscript": "0.1.1",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
