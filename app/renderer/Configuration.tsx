@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { LoaderCircle, X } from 'lucide-react';
 import type { useSettings } from './useSettings';
+import { useDiscord } from './useDiscord';
 
 function Duration({ label, value, disabled, change }: { label: string; value: number; disabled: boolean; change: (value: number) => void }) {
   const [draft, setDraft] = useState<string | null>(null);
@@ -20,13 +21,10 @@ function Duration({ label, value, disabled, change }: { label: string; value: nu
 export function Configuration({ settings, close }: { settings: ReturnType<typeof useSettings>; close: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [token, setToken] = useState('');
-  const [connection, setConnection] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
-  const validFormat = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token.trim());
-  useEffect(() => {
-    if (connection !== 'connecting') return;
-    const timer = window.setTimeout(() => setConnection('connected'), 1200);
-    return () => window.clearTimeout(timer);
-  }, [connection]);
+  const discord = useDiscord();
+  const connection = discord.status;
+  const pending = connection === 'connecting' || connection === 'reconnecting';
+  const servers = [...new Map(discord.channels.map(channel => [channel.serverId, channel.serverName])).entries()];
   useEffect(() => { dialog.current?.showModal(); }, []);
   return <dialog ref={dialog} onCancel={close} aria-labelledby="configuration-title">
     <div className="dialog-heading"><h2 id="configuration-title">Configuration</h2><button className="icon-button" title="Close configuration" aria-label="Close configuration" onClick={close}><X size={18} /></button></div>
@@ -34,25 +32,34 @@ export function Configuration({ settings, close }: { settings: ReturnType<typeof
       <div className="configuration-fields">
         <label className="duration-field"><span>Bot token</span>
           <input className="bot-token" type="password" autoComplete="off" spellCheck={false} value={token}
-            disabled={connection !== 'disconnected'} aria-label="Bot token" placeholder="Token"
+            disabled={discord.loading || connection !== 'disconnected'} aria-label="Bot token" placeholder={connection === 'disconnected' ? 'Token' : pending ? 'Token submitted' : 'Token in use'}
             onChange={event => setToken(event.currentTarget.value)} />
         </label>
         <div className="duration-field"><span>Status</span>
-          <span className="connection-status" role="status" title="Mock connection; no Discord authentication is performed">
-            {connection === 'connecting' && <span className="analysis-spinner"><LoaderCircle size={14} /></span>}
-            {connection === 'connected' ? 'Connected' : connection === 'connecting' ? 'Connecting' : 'Disconnected'}
+          <span className="connection-status" role="status" title={discord.botName ?? undefined}>
+            {pending && <span className="analysis-spinner"><LoaderCircle size={14} /></span>}
+            {connection === 'connected' ? 'Connected' : connection === 'connecting' ? 'Connecting' : connection === 'reconnecting' ? 'Reconnecting' : 'Disconnected'}
           </span>
         </div>
         <div className="dialog-actions connection-actions">
-          <button className={connection === 'connected' ? 'danger' : 'primary'} disabled={connection === 'connecting' || (connection === 'disconnected' && !validFormat)}
-            title="Mock connection; token format is checked locally only"
-            onClick={() => setConnection(connection === 'connected' ? 'disconnected' : 'connecting')}>
-            {connection === 'connected' ? 'Disconnect' : connection === 'connecting' ? 'Connecting' : 'Connect'}
+          <button className={connection !== 'disconnected' ? 'danger' : 'primary'} disabled={discord.loading || !discord.available || (connection === 'disconnected' && !token.trim())}
+            onClick={() => {
+              if (connection !== 'disconnected') { void discord.disconnect(); return; }
+              void discord.connect(token);
+              setToken('');
+            }}>
+            {pending ? 'Cancel' : connection === 'connected' ? 'Disconnect' : 'Connect'}
           </button>
         </div>
+        {discord.error && <p className="error" role="alert">{discord.error}</p>}
       </div>
       <label className="duration-field configuration-divider"><span>Output</span>
-        <select className="output-select" defaultValue="device"><option value="device">Device output</option></select>
+        <select className="output-select" defaultValue="device"><option value="device">Device output</option>
+          {servers.map(([id, name]) => <optgroup key={id} label={name}>
+            {discord.channels.filter(channel => channel.serverId === id).map(channel =>
+              <option key={channel.id} value={channel.id} disabled title="Audio routing is not yet available">{channel.name} (unavailable)</option>)}
+          </optgroup>)}
+        </select>
       </label>
       <div className="configuration-fields configuration-divider">
         <Duration label="Transition crossfade" value={settings.values.crossfade} disabled={settings.loading} change={value => settings.update('crossfade', value)} />
