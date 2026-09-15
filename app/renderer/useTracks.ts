@@ -36,10 +36,10 @@ export interface Playback {
   dispose: () => void;
 }
 
-export const PAGE_SIZE = 16;
+const SLOT_COUNT = 96;
 
 export function useTracks(outputChannel: string | null = null) {
-  const [slots, renderSlots] = useState<(Track | null)[]>(Array(PAGE_SIZE * 6).fill(null));
+  const [slots, renderSlots] = useState<(Track | null)[]>(Array(SLOT_COUNT).fill(null));
   const slotState = useRef(slots);
   const loaded = useRef(false);
   const [loading, setLoading] = useState(true);
@@ -224,7 +224,9 @@ export function useTracks(outputChannel: string | null = null) {
     if (!loaded.current) return;
     const accepted = files.filter(file => /\.mp3$/i.test(file.name));
     if (accepted.length !== files.length) setError('Only MP3 files can be added.');
-    const tracks: Track[] = accepted.map(file => {
+    const available = slotState.current.slice(start).filter(track => track === null).length;
+    if (accepted.length > available) setError(`Only ${available} soundtrack slots are available from this position.`);
+    const tracks: Track[] = accepted.slice(0, available).map(file => {
       return {
         id: crypto.randomUUID(), name: file.name.replace(/\.mp3$/i, ''),
         file, path: window.analysis?.filePath(file) ?? '',
@@ -239,7 +241,6 @@ export function useTracks(outputChannel: string | null = null) {
       let position = start;
       for (const track of tracks) {
         while (next[position]) position++;
-        while (position >= next.length) next.push(...Array(PAGE_SIZE).fill(null));
         next[position++] = track;
       }
       return next;
@@ -326,7 +327,7 @@ export function useTracks(outputChannel: string | null = null) {
     if (window.library) {
       void window.library.load().then(tracks => {
         if (disposed) return;
-        const restored: (Track | null)[] = Array(Math.max(PAGE_SIZE * 6, Math.ceil(((tracks.at(-1)?.slot ?? 0) + 1) / PAGE_SIZE) * PAGE_SIZE)).fill(null);
+        const restored: (Track | null)[] = Array(Math.max(SLOT_COUNT, (tracks.at(-1)?.slot ?? 0) + 1)).fill(null);
         for (const track of tracks) restored[track.slot] = track;
         slotState.current = restored;
         renderSlots(restored);
