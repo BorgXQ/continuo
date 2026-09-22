@@ -104,7 +104,7 @@ export class ProceduralEngine {
         this.next = this.choose(this.bar);
         const target = this.next === null ? null : this.bounds[this.next];
         this.overlap = target && this.next !== this.bar + 1
-          ? Math.min(this.fade, Math.floor((this.bounds[this.bar][1] - this.bounds[this.bar][0]) / 2), Math.floor((target[1] - target[0]) / 2)) : 0;
+          ? Math.min(this.fade, target[0], Math.floor((this.bounds[this.bar][1] - this.bounds[this.bar][0]) / 2), Math.floor((target[1] - target[0]) / 2)) : 0;
         // Do not enter a newly selected crossfade halfway through its overlap.
         if (this.bar >= 0 && this.position > this.bounds[this.bar][1] - this.overlap) this.next = null;
       }
@@ -117,12 +117,13 @@ export class ProceduralEngine {
       for (let channel = 0; channel < output.length; channel++) {
         const audio = this.channels[channel];
         output[channel][frame] = this.fading
-          ? audio[this.position] * Math.cos(angle) + audio[target![0] + offset] * Math.sin(angle)
+          ? audio[this.position] * Math.cos(angle) + audio[target![0] - overlap + offset] * Math.sin(angle)
           : audio[this.position];
       }
       this.position++;
       if (target && this.next !== this.bar + 1 && this.position >= end) {
-        this.position = target![0] + overlap;
+        // Pre-roll ends here; the destination downbeat has not been consumed.
+        this.position = target![0];
         this.bar = -1;
         this.next = null;
         this.planUntil = 0;

@@ -24,7 +24,7 @@ test('natural edges preserve consecutive samples across render blocks', () => {
   assert.deepEqual([...first, ...second], [...audio.slice(0, 45)]);
 });
 
-test('artificial edges use a configured 10 ms equal-power crossfade and consume the destination head', () => {
+test('artificial edges blend destination pre-roll and preserve the full destination head', () => {
   const audio = Float32Array.from({ length: 60 }, (_, i) => i);
   const engine = new ProceduralEngine([audio, audio.map(value => -value)], 1000, graph({
     0: [{ target: 2, probability: 1 }],
@@ -35,7 +35,7 @@ test('artificial edges use a configured 10 ms equal-power crossfade and consume 
   engine.render(output);
   for (let i = 0; i < 21; i++) {
     const angle = (i - 10) / 9 * Math.PI / 2;
-    const expected = i < 10 ? i : i < 20 ? i * Math.cos(angle) + (i + 30) * Math.sin(angle) : 50;
+    const expected = i < 10 ? i : i < 20 ? i * Math.cos(angle) + (i + 20) * Math.sin(angle) : 40;
     assert(Math.abs(output[0][i] - expected) < 0.00001);
     assert.equal(output[1][i], -output[0][i]);
   }
@@ -48,7 +48,7 @@ test('default crossfade is 100 ms and updates do not alter a planned overlap', (
   engine.render([new Float32Array(250)]);
   engine.setCrossfade(0);
   engine.render([new Float32Array(50)]);
-  assert.equal(engine.currentSample, 700);
+  assert.equal(engine.currentSample, 600);
 });
 
 test('zero crossfade still takes alternative edges without consuming the destination', () => {
@@ -68,7 +68,7 @@ test('route choice honors probabilities supplied by the Python navigator', () =>
     1: [{ target: 2, probability: 1 }],
     2: [{ target: 0, probability: 1 }],
   };
-  for (const [random, expected] of [[0.5, 20], [0.99, 50]]) {
+  for (const [random, expected] of [[0.5, 20], [0.99, 40]]) {
     const engine = new ProceduralEngine([audio], 1000, graph(routes), () => random);
     const output = new Float32Array(21);
     engine.render([output]);
@@ -108,9 +108,9 @@ test('leaving procedural mode mid-crossfade finishes the overlap, then continues
   engine.render([output]);
   reference.render([expected]);
   assert.deepEqual(output, expected);
-  const tail = new Float32Array(11);
+  const tail = new Float32Array(21);
   engine.render([tail]);
-  assert.deepEqual([...tail], [...audio.slice(50), 0]);
+  assert.deepEqual([...tail], [...audio.slice(40), 0]);
   assert(engine.ended);
 });
 
@@ -148,7 +148,7 @@ test('switching in an unsafe tail preserves it and finds the graph after wrappin
   engine.render([output]);
   assert.deepEqual([...output], [...audio.slice(45), ...audio.slice(0, 10)]);
   engine.render([new Float32Array(10)]);
-  assert.equal(engine.currentSample, 10);
+  assert.equal(engine.currentSample, 0);
 });
 
 test('replacing analysis during an overlap does not interrupt the crossfade', () => {
@@ -165,5 +165,33 @@ test('replacing analysis during an overlap does not interrupt the crossfade', ()
   engine.render([output]);
   reference.render([expected]);
   assert.deepEqual(output, expected);
-  assert.equal(engine.currentSample, 50);
+  assert.equal(engine.currentSample, 40);
+});
+
+test('repeated jumps preserve downbeat spacing across render blocks, including a file-start target', () => {
+  const audio = new Float32Array(60);
+  audio[0] = audio[40] = 1;
+  const engine = new ProceduralEngine([audio], 1000, graph({
+    0: [{ target: 2, probability: 1 }], 2: [{ target: 0, probability: 1 }],
+  }));
+  const samples: number[] = [];
+  for (const size of [13, 8, 7, 19, 34]) {
+    const block = new Float32Array(size);
+    engine.render([block]);
+    samples.push(...block);
+  }
+  assert.deepEqual(samples.flatMap((value, index) => value === 1 ? [index] : []), [0, 20, 40, 60, 80]);
+  assert(samples.every(Number.isFinite));
+});
+
+test('short pre-roll limits the overlap without reading negative samples', () => {
+  const audio = Float32Array.from({ length: 43 }, (_, i) => i + 1);
+  const result = { ...graph({ 1: [{ target: 0, probability: 1 }] }, 1), bars: [[0.003, 0.023], [0.023, 0.043]] as [number, number][] };
+  const engine = new ProceduralEngine([audio], 1000, result);
+  const output = new Float32Array(21);
+  engine.render([output]);
+  assert.deepEqual([...output.slice(0, 17)], [...audio.slice(23, 40)]);
+  assert(Math.abs(output[18] - (42 + 2) * Math.SQRT1_2) < 0.00001);
+  assert(Math.abs(output[19] - 3) < 0.00001);
+  assert.equal(output[20], 4);
 });

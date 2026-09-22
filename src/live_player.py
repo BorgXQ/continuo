@@ -128,15 +128,15 @@ class LiveMusicPlayer:
         self._fill_bar_queue()
         return True
 
-    def _complete_crossfade(self, next_bar: int, consumed_samples: int) -> None:
-        """Advance past the destination samples already heard in the overlap."""
+    def _complete_crossfade(self, next_bar: int) -> None:
+        """Start the destination at its downbeat after blending its pre-roll."""
         queued_bar = int(self._bar_queue.popleft())
         if queued_bar != next_bar:
             raise RuntimeError("Playback queue became inconsistent.")
 
         self._current_bar = next_bar
         self._current_audio = self._get_bar_audio(next_bar)
-        self._current_position = consumed_samples
+        self._current_position = 0
         self._fill_bar_queue()
 
     def _audio_callback(self, outdata, frames, time, status):
@@ -160,11 +160,16 @@ class LiveMusicPlayer:
                 and self._is_artificial_transition(self._current_bar, next_bar)
             )
 
+            fade_samples = 0
             if artificial:
                 next_audio = self._get_bar_audio(next_bar)
+                target_start = self.bar_samples[next_bar][0]
                 fade_samples = min(
-                    self.crossfade_samples, len(self._current_audio), len(next_audio)
+                    self.crossfade_samples, target_start,
+                    len(self._current_audio) // 2, len(next_audio) // 2,
                 )
+
+            if fade_samples > 0:
                 crossfade_start = len(self._current_audio) - fade_samples
 
                 # Play source audio up to the overlap region.
@@ -190,7 +195,8 @@ class LiveMusicPlayer:
                 source_start = crossfade_start + crossfade_position
                 source_end = source_start + count
                 outgoing = self._current_audio[source_start:source_end]
-                incoming = next_audio[fade_start:fade_end]
+                pre_roll_start = target_start - fade_samples
+                incoming = self.audio[pre_roll_start + fade_start:pre_roll_start + fade_end]
 
                 # Short bars need curves spanning the shortened overlap.
                 if fade_samples == self.crossfade_samples:
@@ -211,9 +217,7 @@ class LiveMusicPlayer:
                 output_position = output_end
 
                 if self._current_position >= len(self._current_audio):
-                    self._complete_crossfade(
-                        next_bar=next_bar, consumed_samples=fade_samples
-                    )
+                    self._complete_crossfade(next_bar)
                 continue
 
             remaining_in_bar = len(self._current_audio) - self._current_position
