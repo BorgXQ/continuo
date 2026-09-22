@@ -2,6 +2,13 @@
 
 Notable user-facing changes to Continuo are recorded here.
 
+## 1.1.1
+
+### Fixed
+
+- Alternative-transition crossfades now blend the source ending with audio immediately before the destination bar, preserving its downbeat timing instead of consuming its opening audio early.
+- Notebook playback uses the same pre-roll behavior and duration caps as the desktop player. Overlaps are limited to available pre-roll and half the shorter participating bar; destinations at the file start use no overlap.
+
 ## 1.1.0
 
 ### Added
