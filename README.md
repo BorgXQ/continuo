@@ -24,7 +24,7 @@ Continuo targets **Windows x64**. Download the Setup `.exe` for your chosen vers
 
 ## Start Playing
 
-1. Add local MP3 files to **SOUNDTRACKS**.
+1. Add local MP3 files to **SOUNDBOARD**.
 2. Click a track to play it. Use its loop icon to change playback mode.
 3. For procedural looping, right-click the track and choose **Analyze**.
 4. Once analysis finds a safe looping region, select **Procedural Loop**.
