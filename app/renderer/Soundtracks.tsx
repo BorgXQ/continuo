@@ -176,7 +176,7 @@ export function Soundtracks({ library }: { library: Library }) {
         }
       }}
       onDrop={event => { event.preventDefault(); clearPageTimer(); setDragging(null); setDropTarget(null); }}>
-      <h2 className="panel-title" id="soundtracks-title">SOUNDTRACKS</h2>
+      <h2 className="panel-title" id="soundtracks-title">SOUNDBOARD</h2>
       <input ref={locatePicker} type="file" accept=".mp3,audio/mpeg" hidden aria-label="Locate missing MP3" onChange={event => {
         const file = event.target.files?.[0];
         if (file && locateTrack.current) library.locate(locateTrack.current, file);
@@ -216,7 +216,7 @@ export function Soundtracks({ library }: { library: Library }) {
           );
         })}
       </div>
-      <nav className="pagination" aria-label="Soundtrack pages">
+      <nav className="pagination" aria-label="Soundboard pages">
         <button className="icon-button" aria-label="Previous page" title="Previous page" disabled={page === 0} onClick={() => setPage(page - 1)}><ArrowLeft size={16} /></button>
         <div className="page-numbers">{pageNumbers(page, pages).map((index, position) => index === 'gap' ? <span key={`gap-${position}`} aria-hidden="true">...</span> : <button key={index} aria-label={`Page ${index + 1}`} aria-current={page === index ? 'page' : undefined} onClick={() => setPage(index)}>{index + 1}</button>)}</div>
         <button className="icon-button" aria-label="Next page" title="Next page" disabled={page === pages - 1} onClick={() => setPage(page + 1)}><ArrowRight size={16} /></button>
