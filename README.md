@@ -43,7 +43,7 @@ Rearrange soundboard tiles by dragging them. Right-click a track to rename it, a
 
 Click the gear icon above the version number to configure transition crossfade and global fade-in/out in **milliseconds**. All values save automatically and cannot be negative.
 
-- Transition crossfade (default: 100 ms) blends alternative jumps during procedural loop playback. Long durations are capped at half the shorter participating bar.
+- Transition crossfade (default: 100 ms) blends the source ending with audio immediately before the destination bar, preserving the destination's downbeat timing. Durations are capped at half the shorter participating bar and the available destination pre-roll.
 - Fade-in (default: 0 ms) softens the start of playback.
 - Fade-out (default: 0 ms) continues playback after Stop is pressed, gradually reducing it to silence. It does not automatically fade the natural end of a file.
 - Press Stop again in NOW PLAYING to end a fade-out immediately.
