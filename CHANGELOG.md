@@ -4,6 +4,10 @@ Notable user-facing changes to Continuo are recorded here.
 
 ## 1.1.1
 
+### Changed
+
+- Renamed the SOUNDTRACKS section to SOUNDBOARD.
+
 ### Fixed
 
 - Alternative-transition crossfades now blend the source ending with audio immediately before the destination bar, preserving its downbeat timing instead of consuming its opening audio early.
