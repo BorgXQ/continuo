@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import type { DragEvent, KeyboardEvent } from 'react';
 import { ArrowLeft, ArrowRight, FileWarning, FolderSearch, Keyboard, LoaderCircle, Pencil, Plus, Repeat, Slash, Sparkles, Trash2, X } from 'lucide-react';
 import { MODE_LABELS } from './useTracks';
+import { AUDIO_ACCEPT } from '../shared/audioFormats';
 import { pageNumbers, soundtrackLayout } from './soundtrackLayout';
 import type { Track, useTracks } from './useTracks';
 
@@ -177,12 +178,12 @@ export function Soundtracks({ library }: { library: Library }) {
       }}
       onDrop={event => { event.preventDefault(); clearPageTimer(); setDragging(null); setDropTarget(null); }}>
       <h2 className="panel-title" id="soundtracks-title">SOUNDBOARD</h2>
-      <input ref={locatePicker} type="file" accept=".mp3,audio/mpeg" hidden aria-label="Locate missing MP3" onChange={event => {
+      <input ref={locatePicker} type="file" accept={AUDIO_ACCEPT} hidden aria-label="Locate missing audio" onChange={event => {
         const file = event.target.files?.[0];
         if (file && locateTrack.current) library.locate(locateTrack.current, file);
         event.target.value = '';
       }} />
-      <input ref={picker} type="file" accept=".mp3,audio/mpeg" multiple hidden aria-label="Select MP3 files" onChange={event => {
+      <input ref={picker} type="file" accept={AUDIO_ACCEPT} multiple hidden aria-label="Select audio files" onChange={event => {
         library.add(Array.from(event.target.files ?? []), pickSlot.current);
         event.target.value = '';
       }} />
@@ -201,8 +202,8 @@ export function Soundtracks({ library }: { library: Library }) {
                 if (track) setMenu({ track, x: Math.max(8, Math.min(event.clientX, window.innerWidth - 240)), y: Math.max(8, Math.min(event.clientY, window.innerHeight - 248)) });
               }}>
               {track ? <>
-                {track.missing && <span className="missing-file" title="MP3 missing or changed; locate the file from the track menu" role="img" aria-label="MP3 missing or changed"><FileWarning size={16} /></span>}
-                <button className="tile-play" disabled={Boolean(track.job) || track.missing} aria-label={`${active ? 'Stop' : 'Play'} ${track.name}`} aria-pressed={active} title={track.missing ? `${track.name}: MP3 missing or changed` : track.name} onClick={() => void library.toggle(track)}>
+                {track.missing && <span className="missing-file" title="Audio missing or changed; locate the file from the track menu" role="img" aria-label="Audio missing or changed"><FileWarning size={16} /></span>}
+                <button className="tile-play" disabled={Boolean(track.job) || track.missing} aria-label={`${active ? 'Stop' : 'Play'} ${track.name}`} aria-pressed={active} title={track.missing ? `${track.name}: audio missing or changed` : track.name} onClick={() => void library.toggle(track)}>
                   <span className="tile-name">{track.name}</span>
                 </button>
                 {track.job ? <>

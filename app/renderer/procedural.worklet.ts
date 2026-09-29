@@ -26,6 +26,7 @@ class ProceduralProcessor extends AudioWorkletProcessor {
         if (message.analysis) this.engine?.setAnalysis(message.analysis);
         if (message.mode) this.engine?.setMode(message.mode);
         if (message.crossfade !== undefined) this.engine?.setCrossfade(message.crossfade);
+        if (message.seek !== undefined) this.engine?.seek(message.seek);
         if (message.play) {
           this.token = message.token;
           this.envelope.start(message.fadeIn ?? 0);

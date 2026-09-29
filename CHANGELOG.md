@@ -2,6 +2,14 @@
 
 Notable user-facing changes to Continuo are recorded here.
 
+## Unreleased
+
+### Changed
+
+- Stream ordinary playback instead of decoding entire tracks on import or startup.
+- Accept common audio extensions in the soundboard and missing-file picker; codec support depends on Electron and the platform.
+- Prepare procedural playback on demand while ordinary playback continues, preserving position when switching engines and releasing decoded audio when stopped.
+
 ## 1.1.1
 
 ### Changed

@@ -1,9 +1,13 @@
 import { join } from 'node:path';
-import { app, BrowserWindow, dialog, Menu } from 'electron';
+import { app, BrowserWindow, dialog, Menu, protocol } from 'electron';
 import squirrelStartup from 'electron-squirrel-startup';
 import { registerAnalysis } from './analysis';
 import { registerLibrary } from './library';
 import { registerDiscord } from './discord';
+
+protocol.registerSchemesAsPrivileged([{ scheme: 'continuo-audio', privileges: {
+  standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true,
+} }]);
 
 function createWindow(): void {
   const window = new BrowserWindow({

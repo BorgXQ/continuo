@@ -71,6 +71,12 @@ export class ProceduralEngine {
 
   get currentSample(): number { return this.position; }
 
+  seek(seconds: number): void {
+    if (!Number.isFinite(seconds) || seconds < 0) throw new Error('Invalid playback position.');
+    this.reset();
+    this.position = Math.min(Math.round(seconds * this.sampleRate), this.channels[0].length);
+  }
+
   setCrossfade(seconds: number): void {
     if (!Number.isFinite(seconds) || seconds < 0) throw new Error('Crossfade must be finite and non-negative.');
     this.fade = Math.round(seconds * this.sampleRate);

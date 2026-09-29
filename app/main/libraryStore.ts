@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { isAbsolute } from 'node:path';
+import { isAudioFile } from '../shared/audioFormats.ts';
 import type { AnalysisResult } from '../shared/analysis';
 import type { AudioSettings, SavedTrack } from '../shared/library';
 
@@ -87,7 +88,7 @@ export class LibraryStore {
     for (const track of tracks) {
       if (!track || typeof track.id !== 'string' || !/^[\w-]{1,80}$/.test(track.id)
         || typeof track.name !== 'string' || !track.name.trim() || track.name.length > 1024
-        || typeof track.path !== 'string' || !isAbsolute(track.path) || !/\.mp3$/i.test(track.path)
+        || typeof track.path !== 'string' || !isAbsolute(track.path) || !isAudioFile(track.path)
         || !['once', 'loop', 'procedural'].includes(track.mode)
         || !Number.isFinite(track.volume) || track.volume < 0 || track.volume > 150
         || !Number.isSafeInteger(track.slot) || track.slot < 0 || track.slot > 100000

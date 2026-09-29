@@ -15,6 +15,17 @@ function track(id = 'track1', slot = 0): SavedTrack {
         1: [{ target: 2, probability: 1 }], 2: [{ target: 0, probability: 1 }] } } };
 }
 
+test('common audio formats persist without an MP3-only restriction', () => {
+  const store = new LibraryStore(':memory:');
+  try {
+    for (const extension of ['m4a', 'wav', 'flac', 'ogg', 'opus', 'aac', 'aiff', 'webm']) {
+      const item = { ...track(), path: join(tmpdir(), `audio.${extension}`) };
+      store.save([item]);
+      assert.equal(store.load()[0].path, item.path);
+    }
+  } finally { store.close(); }
+});
+
 test('SQLite survives reopen and reconstructs natural edges without audio storage', () => {
   const directory = mkdtempSync(join(tmpdir(), 'continuo-db-'));
   const path = join(directory, 'library.sqlite');
