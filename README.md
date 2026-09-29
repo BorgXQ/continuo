@@ -29,6 +29,8 @@ Continuo targets **Windows x64**. Download the Setup `.exe` for your chosen vers
 3. For procedural looping, right-click the track and choose **Analyze**.
 4. Once analysis finds a safe looping region, select **Procedural Loop**.
 
+New procedural analysis is limited to tracks **10 minutes or shorter**. Continuo checks duration before starting analysis; files with unreadable durations cannot be analyzed. Longer tracks can still stream in One Time or Normal Loop mode.
+
 | Mode | Playback |
 | --- | --- |
 | One Time | Plays to the end of the file. |
