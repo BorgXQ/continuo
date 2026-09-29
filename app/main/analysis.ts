@@ -4,6 +4,7 @@ import { isAbsolute, join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { app, ipcMain, type WebContents } from 'electron';
 import type { AnalysisEvent, AnalysisResult } from '../shared/analysis';
+import { validateAnalysisDuration } from '../shared/analysis';
 import { isAudioFile } from '../shared/audioFormats';
 
 interface Job { id: string; path: string; owner: WebContents; cancelled: boolean }
@@ -94,10 +95,11 @@ export function registerAnalysis(): void {
   }
 
   const watched = new WeakSet<WebContents>();
-  ipcMain.handle('analysis:start', (event, id: unknown, path: unknown) => {
+  ipcMain.handle('analysis:start', (event, id: unknown, path: unknown, duration: unknown) => {
     if (event.senderFrame !== event.sender.mainFrame) throw new Error('Analysis requests must come from the main window.');
     if (typeof id !== 'string' || !/^[\w-]{1,80}$/.test(id)) throw new Error('Invalid analysis ID.');
     if (typeof path !== 'string' || !isAbsolute(path) || !isAudioFile(path) || !existsSync(path)) throw new Error('The original audio file is missing or unavailable.');
+    validateAnalysisDuration(duration);
     if (queue.some(job => job.owner === event.sender && job.id === id) || (active?.job.owner === event.sender && active.job.id === id)) throw new Error('Analysis is already queued.');
     if (!watched.has(event.sender)) {
       watched.add(event.sender);

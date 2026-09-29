@@ -5,7 +5,7 @@ import type { DiscordBridge, DiscordState } from '../shared/discord';
 
 const bridge: AnalysisBridge = {
   filePath: file => webUtils.getPathForFile(file),
-  start: (id, path) => ipcRenderer.invoke('analysis:start', id, path),
+  start: (id, path, duration) => ipcRenderer.invoke('analysis:start', id, path, duration),
   cancel: id => ipcRenderer.invoke('analysis:cancel', id),
   onUpdate: listener => {
     const receive = (_event: Electron.IpcRendererEvent, update: AnalysisEvent) => listener(update);

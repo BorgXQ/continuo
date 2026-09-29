@@ -4,6 +4,10 @@ Notable user-facing changes to Continuo are recorded here.
 
 ## Unreleased
 
+### Added
+
+- A 10-minute limit for new procedural analysis, checked from audio metadata before Python starts. Longer tracks remain available for ordinary playback.
+
 ### Changed
 
 - Stream ordinary playback instead of decoding entire tracks on import or startup.

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AnalysisResult } from '../shared/analysis';
+import { validateAnalysisDuration } from '../shared/analysis';
+import { readAudioDuration } from './audioDuration';
 import { loadAudioWorklet, prepareAudio } from './preparedAudio';
 import { TrackPlayer } from './trackPlayer';
 import { isAudioFile } from '../shared/audioFormats';
@@ -57,6 +59,7 @@ export function useTracks(outputChannel: string | null = null) {
   const module = useRef<Promise<void> | null>(null);
   const sessions = useRef(new Map<string, Playback>());
   const jobs = useRef(new Map<string, string>());
+  const durationChecks = useRef(new Map<string, AbortController>());
   const lastSaved = useRef('');
 
   useEffect(() => {
@@ -239,19 +242,39 @@ export function useTracks(outputChannel: string | null = null) {
     if (!window.analysis) { setError('Analysis is available in the desktop app.'); return; }
     const id = crypto.randomUUID();
     jobs.current.set(id, track.id);
-    patch(track.id, { job: { id, state: 'queued', progress: 0, stage: 'Queued' } });
-    try { await window.analysis.start(id, track.path); }
+    const controller = new AbortController();
+    durationChecks.current.set(id, controller);
+    patch(track.id, { job: { id, state: 'running', progress: 0, stage: 'Checking duration' } });
+    const url = track.file ? URL.createObjectURL(track.file) : `continuo-audio://track/${encodeURIComponent(track.id)}`;
+    try {
+      const duration = await readAudioDuration(url, controller.signal);
+      if (!jobs.current.has(id) || controller.signal.aborted) return;
+      validateAnalysisDuration(duration);
+      durationChecks.current.delete(id);
+      await window.analysis.start(id, track.path, duration);
+    }
     catch (cause) {
       if (!jobs.current.has(id)) return;
       jobs.current.delete(id);
       patch(track.id, { job: undefined });
-      setError(String(cause));
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      durationChecks.current.delete(id);
+      if (track.file) URL.revokeObjectURL(url);
     }
   }
 
   async function cancelAnalysis(track: Track) {
     const id = [...jobs.current].find(([, trackId]) => trackId === track.id)?.[0];
     if (!id) return;
+    const check = durationChecks.current.get(id);
+    if (check) {
+      jobs.current.delete(id);
+      durationChecks.current.delete(id);
+      check.abort();
+      patch(track.id, { job: undefined });
+      return;
+    }
     try { await window.analysis?.cancel(id); }
     catch (cause) { setError(String(cause)); }
   }
@@ -337,10 +360,13 @@ export function useTracks(outputChannel: string | null = null) {
     });
     const active = sessions.current;
     const pending = jobs.current;
+    const checks = durationChecks.current;
     return () => {
       unsubscribe?.();
       for (const id of pending.keys()) void window.analysis?.cancel(id).catch(() => {});
       pending.clear();
+      checks.forEach(check => check.abort());
+      checks.clear();
       active.forEach(session => session.dispose());
       active.clear();
       void context.current?.close();
