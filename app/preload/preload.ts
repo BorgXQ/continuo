@@ -16,6 +16,12 @@ const bridge: AnalysisBridge = {
 
 contextBridge.exposeInMainWorld('analysis', bridge);
 
+// Main-process handlers accept these requests only from the isolated decoder window.
+contextBridge.exposeInMainWorld('analysisDecoder', {
+  read: () => ipcRenderer.invoke('analysis:decode-read'),
+  write: (bytes: Uint8Array) => ipcRenderer.invoke('analysis:decode-write', bytes),
+});
+
 const library: LibraryBridge = {
   loadSettings: () => ipcRenderer.invoke('settings:load'),
   saveSettings: settings => ipcRenderer.invoke('settings:save', settings),

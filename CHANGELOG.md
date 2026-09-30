@@ -7,6 +7,7 @@ Notable user-facing changes to Continuo are recorded here.
 ### Added
 
 - A 10-minute limit for new procedural analysis, checked from audio metadata before Python starts. Longer tracks remain available for ordinary playback.
+- Electron decoding fallback for audio Python cannot read completely, using temporary PCM WAVs without standalone FFmpeg. Temporary files are cleaned up after analysis or cancellation and after a crash on the next startup.
 
 ### Changed
 

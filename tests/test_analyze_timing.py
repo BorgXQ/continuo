@@ -61,6 +61,21 @@ class TimingTests(unittest.TestCase):
             with self.assertRaisesRegex(FileNotFoundError, "checkpoint"):
                 analyze_timing("track.mp3")
 
+    def test_supplied_samples_are_used_without_reopening_source(self):
+        tracker = MagicMock(return_value=(np.arange(9) / 2, np.array([0, 2, 4])))
+        audio = np.zeros(100)
+        resample = MagicMock(return_value=audio)
+        decoder = MagicMock(side_effect=AssertionError("Must not reopen original audio"))
+        with patch.dict(sys.modules, {
+            "beat_this.inference": SimpleNamespace(Audio2Beats=MagicMock(return_value=tracker)),
+            "madmom.features.downbeats": SimpleNamespace(DBNDownBeatTrackingProcessor=MagicMock()),
+            "librosa": SimpleNamespace(load=decoder, resample=resample),
+        }):
+            analyze_timing("unused", audio=audio, sample_rate=44100)
+        decoder.assert_not_called()
+        resample.assert_called_once_with(audio, orig_sr=44100, target_sr=22050)
+        tracker.assert_called_once_with(audio, 22050)
+
 
 if __name__ == "__main__":
     unittest.main()

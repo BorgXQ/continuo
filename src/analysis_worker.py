@@ -3,6 +3,7 @@
 import contextlib
 import json
 import sys
+from .analysis_audio import AudioDecodeError, decode_analysis_audio
 
 PROTOCOL = sys.stdout
 
@@ -11,9 +12,11 @@ def emit(**message):
     print(json.dumps(message, allow_nan=False), file=PROTOCOL, flush=True)
 
 
-def analyze(path):
+def analyze(path, expected_duration):
+    emit(state="running", progress=0, stage="Validating audio decoding")
+    audio, sr = decode_analysis_audio(path, expected_duration)
     emit(state="running", progress=1, stage="Loading analysis tools")
-    from .load_audio import load_audio
+    import librosa
     from .analyze_timing import analyze_timing
     from .analyze_features import analyze_features
     from .discover_structure import discover_structure
@@ -21,10 +24,10 @@ def analyze(path):
     from .build_music_graph import build_music_graph
     from .music_navigator import MusicNavigator
 
-    playback, audio, sr = load_audio(path)
-    del playback
+    audio = librosa.resample(audio, orig_sr=sr, target_sr=44100)
+    sr = 44100
     emit(state="running", progress=10, stage="Detecting beats and bars")
-    timing = analyze_timing(path, beats_per_bar=(4,))
+    timing = analyze_timing(path, beats_per_bar=(4,), audio=audio, sample_rate=sr)
     emit(state="running", progress=45, stage="Extracting audio features")
     features = analyze_features(audio, sr, timing)
     if len(features) != len(timing["bars"]):
@@ -66,8 +69,11 @@ if __name__ == "__main__":
     try:
         # Keep library output off the JSON protocol channel.
         with contextlib.redirect_stdout(sys.stderr):
-            result = analyze(sys.argv[1])
+            result = analyze(sys.argv[1], float(sys.argv[2]))
         emit(state="complete", result=result)
+    except AudioDecodeError as error:
+        emit(state="decode_required", message=str(error))
+        sys.exit(2)
     except Exception as error:
         emit(state="failed", message=f"{type(error).__name__}: {error}")
         sys.exit(1)
