@@ -10,6 +10,18 @@ function graph(routes: AnalysisResult['routes'], startBar: number | null = 0): A
   };
 }
 
+test('stream handoff seeks to the existing position without restarting', () => {
+  const samples = Float32Array.from({ length: 60 }, (_, index) => index);
+  const engine = new ProceduralEngine([samples], 1000);
+  engine.setAnalysis(graph({ 1: [{ target: 2, probability: 1 }] }));
+  engine.setMode('procedural');
+  engine.seek(0.027);
+  const output = new Float32Array(5);
+  engine.render([output]);
+  assert.deepEqual([...output], [27, 28, 29, 30, 31]);
+  for (const position of [-1, NaN, Infinity]) assert.throws(() => engine.seek(position));
+});
+
 test('natural edges preserve consecutive samples across render blocks', () => {
   const audio = Float32Array.from({ length: 60 }, (_, i) => i);
   const engine = new ProceduralEngine([audio], 1000, graph({

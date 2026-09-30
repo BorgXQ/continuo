@@ -12,7 +12,7 @@
   <a href="docs/windows-release.md">Build for Windows</a>
 </p>
 
-Continuo plays local MP3s and finds alternative transitions within each track, letting your soundtrack continue while you focus on the game.
+Continuo plays local audio and finds alternative transitions within each track, letting your soundtrack continue while you focus on the game.
 
 <p align="center">
   <img src="assets/Continuo-v1.1.1.png" alt="Continuo v1.1.1 desktop application">
@@ -24,9 +24,9 @@ Continuo targets **Windows x64**. Download the Setup `.exe` for your chosen vers
 
 ## Start Playing
 
-1. Add local MP3 files to **SOUNDBOARD**.
+1. Add local audio files to **SOUNDBOARD**.
 2. Click a track to play it. Use its loop icon to change playback mode.
-3. For procedural looping, right-click the track and choose **Analyze**.
+3. For procedural looping, right-click the track and choose **Analyze** (tracks must be <10 minutes long).
 4. Once analysis finds a safe looping region, select **Procedural Loop**.
 
 | Mode | Playback |
@@ -53,7 +53,7 @@ Click the gear icon above the version number to configure transition crossfade a
 
 Tracks, tile positions, names, volumes, shortcuts, modes, completed analysis, and audio settings are saved automatically in a local SQLite database.
 
-**Keep the original MP3s.** Continuo stores metadata, not audio snippets. Use **Locate file** in a missing track's menu to reconnect it. Relinking a file, or detecting a change in its size or modification time, clears its old analysis.
+**Keep the original audio files.** Continuo stores metadata, not audio snippets. Use **Locate file** in a missing track's menu to reconnect it. Relinking a file, or detecting a change in its size or modification time, clears its old analysis.
 
 On Windows, the database is at `%APPDATA%/continuo/library.sqlite`. Playback and unfinished analysis jobs do not resume when you reopen the app.
 
@@ -61,7 +61,7 @@ On Windows, the database is at `%APPDATA%/continuo/library.sqlite`. Playback and
 
 ```mermaid
 flowchart LR
-    A[Local MP3] --> B[Beats and bars]
+    A[Local audio] --> B[Beats and bars]
     B --> C[Audio features]
     C --> D[Structure similarity]
     D --> E[Candidate transitions]

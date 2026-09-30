@@ -30,7 +30,7 @@ def _timing_from_beats(beat_times, downbeat_times):
     }
 
 
-def analyze_timing(audio_path, beats_per_bar=(4,), *, checkpoint_path=None):
+def analyze_timing(audio_path, beats_per_bar=(4,), *, checkpoint_path=None, audio=None, sample_rate=None):
     """Decode Beat This! predictions with a four-beat DBN on CPU."""
     if tuple(beats_per_bar) != (4,):
         raise ValueError("Continuo currently supports four-beat bars only.")
@@ -51,6 +51,12 @@ def analyze_timing(audio_path, beats_per_bar=(4,), *, checkpoint_path=None):
         transition_lambda=100,
     )
     # Use the existing decoder rather than introduce a second MP3 backend.
-    audio, sr = librosa.load(audio_path, sr=22050, mono=True)
+    if audio is None:
+        audio, sr = librosa.load(audio_path, sr=22050, mono=True)
+    else:
+        if sample_rate is None or sample_rate <= 0:
+            raise ValueError("A positive sample_rate is required with decoded audio.")
+        audio = librosa.resample(audio, orig_sr=sample_rate, target_sr=22050)
+        sr = 22050
     beats, downbeats = tracker(audio, sr)
     return _timing_from_beats(beats, downbeats)

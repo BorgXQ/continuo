@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AnalysisResult } from '../shared/analysis';
-import { loadAudioWorklet, prepareAudio, type PreparedAudio } from './preparedAudio';
+import { validateAnalysisDuration } from '../shared/analysis';
+import { readAudioDuration } from './audioDuration';
+import { loadAudioWorklet, prepareAudio } from './preparedAudio';
+import { TrackPlayer } from './trackPlayer';
+import { isAudioFile } from '../shared/audioFormats';
 import type { PlayMode } from './proceduralEngine';
 import type { SavedTrack } from '../shared/library';
 import { useSettings } from './useSettings';
@@ -29,6 +33,7 @@ export interface Playback {
   stopping: boolean;
   fadeOut: (seconds: number) => boolean;
   setMode: (mode: PlayMode, analysis?: AnalysisResult) => void;
+  setCrossfade: (seconds: number) => void;
   gain: GainNode;
   analyser: AnalyserNode;
   started: number;
@@ -52,15 +57,13 @@ export function useTracks(outputChannel: string | null = null) {
   selectedOutput.current = outputChannel;
   useEffect(() => { output.current?.select(outputChannel); }, [outputChannel]);
   const module = useRef<Promise<void> | null>(null);
-  const prepared = useRef(new Map<string, Promise<PreparedAudio>>());
   const sessions = useRef(new Map<string, Playback>());
   const jobs = useRef(new Map<string, string>());
+  const durationChecks = useRef(new Map<string, AbortController>());
   const lastSaved = useRef('');
 
   useEffect(() => {
-    for (const audio of prepared.current.values()) {
-      void audio.then(player => player.node.port.postMessage({ crossfade: settings.values.crossfade })).catch(() => {});
-    }
+    for (const session of sessions.current.values()) session.setCrossfade(settings.values.crossfade);
   }, [settings.values.crossfade]);
 
   function snapshot(): SavedTrack[] {
@@ -112,33 +115,13 @@ export function useTracks(outputChannel: string | null = null) {
     setPlaying(Object.fromEntries(sessions.current));
   }
 
-  function prepare(track: Track): Promise<PreparedAudio> {
-    const existing = prepared.current.get(track.id);
-    if (existing) return existing;
+  function audioContext(): AudioContext {
     const ctx = context.current ??= new AudioContext({ sampleRate: 48000 });
     if (!output.current) {
       output.current = new AudioOutput(ctx);
       output.current.select(selectedOutput.current);
     }
-    module.current ??= loadAudioWorklet(ctx).catch(error => {
-      module.current = null;
-      throw error;
-    });
-    const file = track.file ? Promise.resolve(track.file) : window.library!.read(track.id)
-      .then(bytes => new File([new Uint8Array(bytes)], track.name + '.mp3', { type: 'audio/mpeg', lastModified: track.modified }))
-      .catch(cause => { patch(track.id, { missing: true }); throw cause; });
-    const promise = Promise.all([file, module.current, output.current.ready]).then(([file]) => prepareAudio(ctx, file, Promise.resolve())).then(audio => {
-      if (prepared.current.get(track.id) !== promise) {
-        audio.dispose();
-        throw new Error('Track preparation was cancelled.');
-      }
-      return audio;
-    }).catch(error => {
-      if (prepared.current.get(track.id) === promise) prepared.current.delete(track.id);
-      throw error;
-    });
-    prepared.current.set(track.id, promise);
-    return promise;
+    return ctx;
   }
 
   async function toggle(track: Track) {
@@ -148,43 +131,45 @@ export function useTracks(outputChannel: string | null = null) {
     if (previous && !previous.stopping) return stop(track.id);
     if (previous) finish(track.id);
     if (track.mode === 'procedural' && track.analysis?.startBar == null) return;
-    const ready = prepare(track);
-    const ctx = context.current!;
+    const ctx = audioContext();
     const gain = ctx.createGain();
     gain.gain.value = track.volume / 100;
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 8192;
     gain.connect(analyser).connect(output.current!.input);
-    let audio: PreparedAudio | undefined;
-    let analysis = track.analysis;
-    const token = crypto.randomUUID();
+    const url = track.file ? URL.createObjectURL(track.file) : `continuo-audio://track/${encodeURIComponent(track.id)}`;
+    const player = new TrackPlayer(ctx, gain, url,
+      () => { if (track.file) URL.revokeObjectURL(url); },
+      async () => {
+        module.current ??= loadAudioWorklet(ctx).catch(error => { module.current = null; throw error; });
+        const file = track.file ?? new File([new Uint8Array(await window.library!.read(track.id))], track.path);
+        return prepareAudio(ctx, file, module.current);
+      },
+      () => { if (current()) finish(track.id); },
+      cause => fail(`Cannot play ${track.name}: ${cause instanceof Error ? cause.message : String(cause)}`),
+      cause => {
+        if (!current()) return;
+        session.mode = 'once';
+        player.setMode('once');
+        patch(track.id, { mode: 'once' });
+        setPlaying(Object.fromEntries(sessions.current));
+        setError(`Cannot enable procedural playback: ${String(cause)}`);
+      });
     const session: Playback = {
       focusedAt: performance.now(),
       stopping: false,
       fadeOut: seconds => {
-        if (!audio || seconds === 0) return false;
-        session.stopping = true;
-        audio.node.port.postMessage({ fadeOut: seconds });
-        return true;
+        session.stopping = player.fadeOut(seconds);
+        return session.stopping;
       },
       gain, analyser, mode: track.mode, started: performance.now(),
       setMode: (mode, result) => {
         session.mode = mode;
-        analysis = result;
-        if (!audio) return;
-        if (result && result !== audio.analysis) {
-          audio.node.port.postMessage({ analysis: result });
-          audio.analysis = result;
-        }
-        audio.node.port.postMessage({ mode });
+        player.setMode(mode, result);
       },
+      setCrossfade: seconds => player.setCrossfade(seconds),
       dispose: () => {
-        if (audio) {
-          audio.node.port.postMessage({ stop: true });
-          audio.node.port.onmessage = null;
-          audio.node.onprocessorerror = null;
-          audio.node.disconnect();
-        }
+        player.dispose();
         gain.disconnect();
         analyser.disconnect();
       },
@@ -195,24 +180,14 @@ export function useTracks(outputChannel: string | null = null) {
     const fail = (message: string) => {
       if (!current()) return;
       finish(track.id);
-      if (audio) {
-        prepared.current.delete(track.id);
-        audio.dispose();
-      }
       setError(message);
     };
     try {
-      const [player] = await Promise.all([ready, ctx.resume()]);
+      await Promise.all([output.current!.ready, ctx.resume()]);
       if (!current()) return;
-      audio = player;
-      audio.node.connect(gain);
-      audio.node.onprocessorerror = () => fail('Audio processing failed.');
-      audio.node.port.onmessage = event => {
-        if (event.data.state === 'ended' && event.data.token === token && current()) finish(track.id);
-        else if (event.data.state === 'failed') fail(String(event.data.message));
-      };
-      session.setMode(session.mode, analysis);
-      audio.node.port.postMessage({ play: true, token, fadeIn: settings.current.current.fadeIn, crossfade: settings.current.current.crossfade });
+      player.setCrossfade(settings.current.current.crossfade);
+      await player.start(session.mode, track.analysis, settings.current.current.fadeIn);
+      if (!current()) return;
       session.started = performance.now();
       setPlaying(Object.fromEntries(sessions.current));
     } catch (cause) {
@@ -222,20 +197,18 @@ export function useTracks(outputChannel: string | null = null) {
 
   function add(files: File[], start: number) {
     if (!loaded.current) return;
-    const accepted = files.filter(file => /\.mp3$/i.test(file.name));
-    if (accepted.length !== files.length) setError('Only MP3 files can be added.');
+    const accepted = files.filter(file => isAudioFile(file.name));
+    if (accepted.length !== files.length) setError('Select a supported audio file extension.');
     const available = slotState.current.slice(start).filter(track => track === null).length;
     if (accepted.length > available) setError(`Only ${available} soundtrack slots are available from this position.`);
     const tracks: Track[] = accepted.slice(0, available).map(file => {
       return {
-        id: crypto.randomUUID(), name: file.name.replace(/\.mp3$/i, ''),
+        id: crypto.randomUUID(), name: file.name.replace(/\.[^.]+$/, ''),
         file, path: window.analysis?.filePath(file) ?? '',
         size: file.size, modified: file.lastModified,
         mode: 'once', volume: 100, shortcut: null,
       };
     });
-    for (const track of tracks) void prepare(track).catch(() => {});
-    void context.current?.resume().catch(() => {});
     setSlots(previous => {
       const next = [...previous];
       let position = start;
@@ -269,19 +242,39 @@ export function useTracks(outputChannel: string | null = null) {
     if (!window.analysis) { setError('Analysis is available in the desktop app.'); return; }
     const id = crypto.randomUUID();
     jobs.current.set(id, track.id);
-    patch(track.id, { job: { id, state: 'queued', progress: 0, stage: 'Queued' } });
-    try { await window.analysis.start(id, track.path); }
+    const controller = new AbortController();
+    durationChecks.current.set(id, controller);
+    patch(track.id, { job: { id, state: 'running', progress: 0, stage: 'Checking duration' } });
+    const url = track.file ? URL.createObjectURL(track.file) : `continuo-audio://track/${encodeURIComponent(track.id)}`;
+    try {
+      const duration = await readAudioDuration(url, controller.signal);
+      if (!jobs.current.has(id) || controller.signal.aborted) return;
+      validateAnalysisDuration(duration);
+      durationChecks.current.delete(id);
+      await window.analysis.start(id, track.path, duration);
+    }
     catch (cause) {
       if (!jobs.current.has(id)) return;
       jobs.current.delete(id);
       patch(track.id, { job: undefined });
-      setError(String(cause));
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      durationChecks.current.delete(id);
+      if (track.file) URL.revokeObjectURL(url);
     }
   }
 
   async function cancelAnalysis(track: Track) {
     const id = [...jobs.current].find(([, trackId]) => trackId === track.id)?.[0];
     if (!id) return;
+    const check = durationChecks.current.get(id);
+    if (check) {
+      jobs.current.delete(id);
+      durationChecks.current.delete(id);
+      check.abort();
+      patch(track.id, { job: undefined });
+      return;
+    }
     try { await window.analysis?.cancel(id); }
     catch (cause) { setError(String(cause)); }
   }
@@ -290,9 +283,6 @@ export function useTracks(outputChannel: string | null = null) {
     void cancelAnalysis(track);
     for (const [job, id] of jobs.current) if (id === track.id) jobs.current.delete(job);
     finish(track.id);
-    const audio = prepared.current.get(track.id);
-    prepared.current.delete(track.id);
-    void audio?.then(player => player.dispose()).catch(() => {});
     setSlots(previous => previous.map(item => item?.id === track.id ? null : item));
   }
 
@@ -307,19 +297,15 @@ export function useTracks(outputChannel: string | null = null) {
   }
 
   function locate(track: Track, file: File) {
-    if (!/\.mp3$/i.test(file.name)) { setError('Select an MP3 file.'); return; }
+    if (!isAudioFile(file.name)) { setError('Select a supported audio file extension.'); return; }
     void cancelAnalysis(track);
     for (const [job, id] of jobs.current) if (id === track.id) jobs.current.delete(job);
     finish(track.id);
-    const previous = prepared.current.get(track.id);
-    prepared.current.delete(track.id);
-    void previous?.then(audio => audio.dispose()).catch(() => {});
     const replacement: Track = {
       ...track, file, path: window.analysis?.filePath(file) ?? '', size: file.size, modified: file.lastModified,
       missing: false, analysis: undefined, job: undefined, mode: track.mode === 'procedural' ? 'once' : track.mode,
     };
     patch(track.id, replacement);
-    void prepare(replacement).catch(() => {});
   }
 
   useEffect(() => {
@@ -334,7 +320,6 @@ export function useTracks(outputChannel: string | null = null) {
         lastSaved.current = JSON.stringify(snapshot());
         loaded.current = true;
         setLoading(false);
-        for (const track of restored) if (track && !track.missing) void prepare(track).catch(() => {});
       }).catch(cause => {
         if (!disposed) setError(`Cannot load library: ${String(cause)}. Restart the app to retry.`);
       });
@@ -373,17 +358,17 @@ export function useTracks(outputChannel: string | null = null) {
         if (event.state === 'failed') setError(event.message);
       }
     });
-    const players = prepared.current;
     const active = sessions.current;
     const pending = jobs.current;
+    const checks = durationChecks.current;
     return () => {
       unsubscribe?.();
       for (const id of pending.keys()) void window.analysis?.cancel(id).catch(() => {});
       pending.clear();
+      checks.forEach(check => check.abort());
+      checks.clear();
       active.forEach(session => session.dispose());
       active.clear();
-      players.forEach(player => { void player.then(audio => audio.dispose()).catch(() => {}); });
-      players.clear();
       void context.current?.close();
       context.current = null;
       output.current = null;

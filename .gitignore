@@ -3,8 +3,7 @@
 data/
 
 project_idea.md
-analysis.ipynb
-test.ipynb
+*.ipynb
 
 **/__pycache__/
 

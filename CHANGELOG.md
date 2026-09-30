@@ -2,6 +2,19 @@
 
 Notable user-facing changes to Continuo are recorded here.
 
+## 1.2.0
+
+### Added
+
+- A 10-minute limit for new procedural analysis, checked from audio metadata before Python starts. Longer tracks remain available for ordinary playback.
+- Electron decoding fallback for audio Python cannot read completely, using temporary PCM WAVs without standalone FFmpeg. Temporary files are cleaned up after analysis or cancellation and after a crash on the next startup.
+
+### Changed
+
+- Stream ordinary playback instead of decoding entire tracks on import or startup.
+- Accept common audio extensions in the soundboard and missing-file picker; codec support depends on Electron and the platform.
+- Prepare procedural playback on demand while ordinary playback continues, preserving position when switching engines and releasing decoded audio when stopped.
+
 ## 1.1.1
 
 ### Changed

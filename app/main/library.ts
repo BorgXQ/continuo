@@ -1,4 +1,5 @@
-import { app, ipcMain, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron';
+import { app, ipcMain, protocol, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron';
+import { audioFileResponse } from './audioFile';
 import { mkdirSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -8,6 +9,14 @@ import type { AudioSettings, SavedTrack } from '../shared/library';
 export function registerLibrary(): void {
   mkdirSync(app.getPath('userData'), { recursive: true });
   const store = new LibraryStore(join(app.getPath('userData'), 'library.sqlite'));
+  protocol.handle('continuo-audio', async request => {
+    try {
+      const url = new URL(request.url);
+      if (url.hostname !== 'track') return new Response(null, { status: 404 });
+      const track = store.file(decodeURIComponent(url.pathname.slice(1)));
+      return await audioFileResponse(request, track.path, track.size, track.modified);
+    } catch { return new Response('Audio file unavailable.', { status: 404 }); }
+  });
   function authorize(event: IpcMainEvent | IpcMainInvokeEvent) {
     if (event.senderFrame !== event.sender.mainFrame) throw new Error('Library requests must come from the main window.');
   }
@@ -43,7 +52,7 @@ export function registerLibrary(): void {
     authorize(event);
     const track = store.file(id);
     const stat = statSync(track.path);
-    if (stat.size !== track.size || Math.trunc(stat.mtimeMs) !== track.modified) throw new Error('The MP3 has changed. Locate the file again before playing.');
+    if (stat.size !== track.size || Math.trunc(stat.mtimeMs) !== track.modified) throw new Error('The audio file has changed. Locate the file again before playing.');
     return new Uint8Array(await readFile(track.path));
   });
   app.on('will-quit', () => store.close());
