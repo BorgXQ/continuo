@@ -31,6 +31,8 @@ Continuo targets **Windows x64**. Download the Setup `.exe` for your chosen vers
 
 New procedural analysis is limited to tracks **10 minutes or shorter**. Continuo checks duration before starting analysis; files with unreadable durations cannot be analyzed. Longer tracks can still stream in One Time or Normal Loop mode.
 
+Analysis first tries Python's audio decoder and checks for incomplete or invalid output. If necessary, Electron decodes the file into a temporary PCM WAV. Beat detection and feature extraction use the same decoded samples. Temporary WAVs are removed after completion, failure, or cancellation; crash leftovers are removed on startup. No standalone FFmpeg is required. If neither decoder succeeds, convert a copy externally to a standard MP3 or PCM WAV. Successful decoding does not guarantee that a track has detectable beats or a safe procedural loop.
+
 | Mode | Playback |
 | --- | --- |
 | One Time | Plays to the end of the file. |
