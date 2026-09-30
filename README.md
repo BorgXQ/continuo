@@ -15,7 +15,7 @@
 Continuo plays local audio and finds alternative transitions within each track, letting your soundtrack continue while you focus on the game.
 
 <p align="center">
-  <img src="assets/Continuo-v1.1.1.png" alt="Continuo v1.1.1 desktop application">
+  <img src="assets/Continuo-v1.2.0.png" alt="Continuo v1.2.0 desktop application">
 </p>
 
 ## Install
