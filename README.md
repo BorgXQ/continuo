@@ -26,12 +26,8 @@ Continuo targets **Windows x64**. Download the Setup `.exe` for your chosen vers
 
 1. Add local audio files to **SOUNDBOARD**.
 2. Click a track to play it. Use its loop icon to change playback mode.
-3. For procedural looping, right-click the track and choose **Analyze**.
+3. For procedural looping, right-click the track and choose **Analyze** (tracks must be <10 minutes long).
 4. Once analysis finds a safe looping region, select **Procedural Loop**.
-
-New procedural analysis is limited to tracks **10 minutes or shorter**. Continuo checks duration before starting analysis; files with unreadable durations cannot be analyzed. Longer tracks can still stream in One Time or Normal Loop mode.
-
-Analysis first tries Python's audio decoder and checks for incomplete or invalid output. If necessary, Electron decodes the file into a temporary PCM WAV. Beat detection and feature extraction use the same decoded samples. Temporary WAVs are removed after completion, failure, or cancellation; crash leftovers are removed on startup. No standalone FFmpeg is required. If neither decoder succeeds, convert a copy externally to a standard MP3 or PCM WAV. Successful decoding does not guarantee that a track has detectable beats or a safe procedural loop.
 
 | Mode | Playback |
 | --- | --- |
@@ -40,10 +36,6 @@ Analysis first tries Python's audio decoder and checks for incomplete or invalid
 | Procedural Loop | Follows analyzed bar transitions to keep the music going. |
 
 Multiple tracks can play together; **NOW PLAYING** shows the most recently played or selected track first. Expand the section to access the others, adjust their volume, or stop them.
-
-The file picker accepts MP3, WAV, FLAC, Ogg/Opus, M4A/AAC, AIFF, and WebM. Playback depends on the codecs supported by Electron on your platform; files are not automatically converted. One-time and normal-loop playback stream from disk without decoding the whole track first. Normal streaming loops are not guaranteed sample-perfect.
-
-Procedural playback still requires full decoding. Ordinary playback continues while it prepares, then hands over at the current position. That session retains its decoded engine through subsequent mode changes, releasing it when stopped. Long tracks can still require substantial memory in procedural mode.
 
 Rearrange soundboard tiles by dragging them. Right-click a track to rename it, assign a keyboard shortcut, analyze it, or remove it from the library. Analysis jobs run one at a time, queue automatically, and can be cancelled. Existing playback can continue while a track is analyzed, but busy tiles cannot start playback or change mode.
 
