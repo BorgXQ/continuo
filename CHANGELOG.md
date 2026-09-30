@@ -2,7 +2,7 @@
 
 Notable user-facing changes to Continuo are recorded here.
 
-## Unreleased
+## 1.2.0
 
 ### Added
 
