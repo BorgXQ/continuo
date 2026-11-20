@@ -56,7 +56,7 @@ export function LoopMap({ name, session, close }: { name: string; session: Playb
       <span className={`loop-map-details ${inspected ? '' : 'status'}`} aria-live="polite">| {details}</span>
     </div>
     <svg ref={plot} className="loop-map-plot" viewBox={`0 0 900 ${height}`} role="group" aria-label={`${name}: track timeline and loops`}>
-      <line x1={35} x2={865} y1={center} y2={center} stroke="#65756b" strokeWidth={1.5} />
+      <line x1={35} x2={865} y1={center} y2={center} stroke="#65756b" strokeWidth={1.25} />
       {Array.from({ length: 9 }, (_, i) => {
         const seconds = duration * i / 8;
         return <g key={i}>
@@ -75,12 +75,12 @@ export function LoopMap({ name, session, close }: { name: string; session: Playb
           onClick={choose} onMouseEnter={() => setHovered(index)} onMouseLeave={() => setHovered(null)}
           onFocus={() => setHovered(index)} onBlur={() => setHovered(null)}
           onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(); } }}>
-          <defs><marker id={`${id}-arrow-${index}`} viewBox="0 0 10 10" refX={8} refY={5} markerWidth={5} markerHeight={5} orient="auto-start-reverse">
+          <defs><marker id={`${id}-arrow-${index}`} viewBox="0 0 10 10" refX={8} refY={5} markerUnits="userSpaceOnUse" markerWidth={7} markerHeight={7} orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill={color} />
           </marker></defs>
           <path className="loop-map-hit" d={path} fill="none" stroke="transparent" strokeWidth={14} />
-          <path className="loop-map-ink" d={path} fill="none" stroke={color} strokeWidth={1.8} markerEnd={`url(#${id}-arrow-${index})`} />
-          <circle cx={start} cy={center} r={2.5} fill={color} pointerEvents="none" />
+          <path className="loop-map-ink" d={path} fill="none" stroke={color} strokeWidth={1.5} markerEnd={`url(#${id}-arrow-${index})`} />
+          <circle cx={start} cy={center} r={2} fill={color} pointerEvents="none" />
         </g>;
       })}
       {duration > 0 && <line ref={playhead} x1={x(position.current)} x2={x(position.current)}
