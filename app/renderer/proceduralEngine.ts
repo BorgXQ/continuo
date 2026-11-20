@@ -13,6 +13,7 @@ export class ProceduralEngine {
   private pendingAnalysis?: AnalysisResult;
   private planUntil = 0;
   private fade: number;
+  private jumpProbability = 5;
   private overlap = 0;
   ended = false;
 
@@ -88,12 +89,21 @@ export class ProceduralEngine {
   private choose(bar: number): number | null {
     const routes = this.analysis?.routes[bar];
     if (!routes?.length) return null;
-    let value = this.random();
-    for (const route of routes) {
-      value -= route.probability;
-      if (value < 0) return route.target;
-    }
-    return routes[routes.length - 1].target;
+    const natural = routes.find(route => route.target === bar + 1);
+    const alternatives = routes.filter(route => route.target !== bar + 1);
+    if (!alternatives.length) return natural?.target ?? null;
+    if (natural && this.jumpProbability === 0) return natural.target;
+    const naturalProbability = natural ? 1 - this.jumpProbability / 100 : 0;
+    const value = this.random();
+    if (natural && value < naturalProbability) return natural.target;
+    const index = Math.min(alternatives.length - 1,
+      Math.floor((value - naturalProbability) / (1 - naturalProbability) * alternatives.length));
+    return alternatives[index].target;
+  }
+
+  setJumpProbability(percent: number): void {
+    if (!Number.isInteger(percent) || percent < 0 || percent > 100) throw new Error('Jump probability must be an integer from 0 to 100.');
+    this.jumpProbability = percent;
   }
 
   render(output: Float32Array[]): void {

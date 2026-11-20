@@ -1,7 +1,11 @@
 import type { AnalysisResult } from './analysis';
 
-export interface AudioSettings { crossfade: number; fadeIn: number; fadeOut: number }
-export const DEFAULT_AUDIO_SETTINGS: AudioSettings = { crossfade: 0.15, fadeIn: 0, fadeOut: 0 };
+export interface AudioSettings { crossfade: number; fadeIn: number; fadeOut: number; jumpProbability: number }
+export const DEFAULT_AUDIO_SETTINGS: AudioSettings = { crossfade: 0.15, fadeIn: 0, fadeOut: 0, jumpProbability: 5 };
+
+export function isJumpProbability(value: number): boolean {
+  return Number.isInteger(value) && value >= 0 && value <= 100;
+}
 
 export interface SavedTrack {
   id: string;

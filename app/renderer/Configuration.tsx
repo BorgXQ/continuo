@@ -3,31 +3,54 @@ import { LoaderCircle, X } from 'lucide-react';
 import type { useSettings } from './useSettings';
 import type { useDiscord } from './useDiscord';
 
-function Duration({ label, value, disabled, change }: { label: string; value: number; disabled: boolean; change: (value: number) => void }) {
+function SettingValue({ label, value, disabled, change, unit = 'ms' }: { label: string; value: number; disabled: boolean; change: (value: number) => void; unit?: 'ms' | '%' }) {
   const [draft, setDraft] = useState<string | null>(null);
+  const percentage = unit === '%';
   return <label className="duration-field"><span>{label}</span>
-    <span className="volume-value duration-value"><input aria-label={`${label} (milliseconds)`} type="number" min="0" step="any" disabled={disabled} value={draft ?? Number((value * 1000).toPrecision(15))}
+    <span className="volume-value duration-value"><input aria-label={`${label} (${percentage ? 'percent' : 'milliseconds'})`} type="number" min="0" max={percentage ? 100 : undefined} step={percentage ? 1 : 'any'} disabled={disabled} value={draft ?? (percentage ? value : Number((value * 1000).toPrecision(15)))}
       onFocus={event => event.currentTarget.select()}
       onChange={event => {
         setDraft(event.currentTarget.value);
-        const milliseconds = event.currentTarget.valueAsNumber;
-        if (Number.isFinite(milliseconds) && milliseconds >= 0) change(milliseconds / 1000);
+        const amount = event.currentTarget.valueAsNumber;
+        if (Number.isFinite(amount) && amount >= 0 && (!percentage || (Number.isInteger(amount) && amount <= 100))) change(percentage ? amount : amount / 1000);
       }}
       onBlur={() => setDraft(null)}
-      onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} /><span>ms</span></span>
+      onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} /><span>{unit}</span></span>
   </label>;
 }
 
 export function Configuration({ settings, discord, close }: { settings: ReturnType<typeof useSettings>; discord: ReturnType<typeof useDiscord>; close: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const resetButton = useRef<HTMLButtonElement>(null);
+  const outsidePress = useRef(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const { token, setToken } = discord;
   const connection = discord.status;
   const pending = connection === 'connecting' || connection === 'reconnecting';
   const servers = [...new Map(discord.channels.map(channel => [channel.serverId, channel.serverName])).entries()];
   useEffect(() => { dialog.current?.showModal(); }, []);
-  return <dialog ref={dialog} onCancel={close} aria-labelledby="configuration-title">
+  const dismissConfirmation = () => {
+    setConfirmReset(false);
+    requestAnimationFrame(() => resetButton.current?.focus());
+  };
+  const outside = (x: number, y: number) => {
+    const bounds = dialog.current!.getBoundingClientRect();
+    return x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom;
+  };
+  return <dialog ref={dialog} onCancel={event => {
+    event.preventDefault();
+    if (confirmReset) dismissConfirmation(); else close();
+  }} onPointerDown={event => { outsidePress.current = event.target === event.currentTarget && outside(event.clientX, event.clientY); }}
+    onClick={event => { if (outsidePress.current && event.target === event.currentTarget && outside(event.clientX, event.clientY)) close(); outsidePress.current = false; }} aria-labelledby="configuration-title">
     <div className="dialog-heading"><h2 id="configuration-title">Configuration</h2><button className="icon-button" title="Close configuration" aria-label="Close configuration" onClick={close}><X size={18} /></button></div>
-    <div className="configuration-fields">
+    {confirmReset ? <>
+      <p>Reset audio settings to their defaults?</p>
+      <p>Transition crossfade: 150 ms<br />Global fade-in: 0 ms<br />Global fade-out: 0 ms<br />Jump probability: 5%</p>
+      <div className="dialog-actions">
+        <button autoFocus onClick={dismissConfirmation}>Cancel</button>
+        <button className="primary" onClick={() => { settings.reset(); dismissConfirmation(); }}>Reset to default</button>
+      </div>
+    </> : <><div className="configuration-fields">
       <div className="configuration-fields">
         <label className="duration-field"><span>Bot token</span>
           <input className="bot-token" type="password" autoComplete="off" spellCheck={false} value={token}
@@ -61,11 +84,13 @@ export function Configuration({ settings, discord, close }: { settings: ReturnTy
         </select>
       </label>
       <div className="configuration-fields configuration-divider">
-        <Duration label="Transition crossfade" value={settings.values.crossfade} disabled={settings.loading} change={value => settings.update('crossfade', value)} />
-        <Duration label="Global fade-in" value={settings.values.fadeIn} disabled={settings.loading} change={value => settings.update('fadeIn', value)} />
-        <Duration label="Global fade-out" value={settings.values.fadeOut} disabled={settings.loading} change={value => settings.update('fadeOut', value)} />
+        <SettingValue label="Transition crossfade" value={settings.values.crossfade} disabled={settings.loading} change={value => settings.update('crossfade', value)} />
+        <SettingValue label="Global fade-in" value={settings.values.fadeIn} disabled={settings.loading} change={value => settings.update('fadeIn', value)} />
+        <SettingValue label="Global fade-out" value={settings.values.fadeOut} disabled={settings.loading} change={value => settings.update('fadeOut', value)} />
+        <SettingValue label="Jump probability" value={settings.values.jumpProbability} unit="%" disabled={settings.loading} change={value => settings.update('jumpProbability', value)} />
       </div>
     </div>
+    <div className="dialog-actions"><button ref={resetButton} disabled={settings.loading} onClick={() => setConfirmReset(true)}>Reset to default</button></div></>}
     {settings.error && <p className="error" role="alert">{settings.error}</p>}
   </dialog>;
 }

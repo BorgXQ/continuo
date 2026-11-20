@@ -14,6 +14,7 @@ export class TrackPlayer {
   private started = false;
   private mode: PlayMode = 'once';
   private crossfade = 0.15;
+  private jumpProbability = 5;
   private timeline = { currentTime: 0, duration: 0 };
   private timer?: ReturnType<typeof setTimeout>;
   private ramp = { start: 0, duration: 0, from: 1, to: 1 };
@@ -103,7 +104,7 @@ export class TrackPlayer {
     };
     this.timeline = { currentTime: this.media.currentTime, duration: this.media.duration };
     audio.node.connect(this.envelope);
-    audio.node.port.postMessage({ analysis, mode: 'procedural', crossfade: this.crossfade,
+    audio.node.port.postMessage({ analysis, mode: 'procedural', crossfade: this.crossfade, jumpProbability: this.jumpProbability,
       seek: this.media.currentTime, play: true, fadeIn: 0 });
     this.media.pause();
     this.source.disconnect();
@@ -121,6 +122,11 @@ export class TrackPlayer {
   setCrossfade(seconds: number): void {
     this.crossfade = seconds;
     this.audio?.node.port.postMessage({ crossfade: seconds });
+  }
+
+  setJumpProbability(percent: number): void {
+    this.jumpProbability = percent;
+    this.audio?.node.port.postMessage({ jumpProbability: percent });
   }
 
   fadeOut(seconds: number): boolean {

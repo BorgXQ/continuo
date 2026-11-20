@@ -76,7 +76,7 @@ test('zero crossfade still takes alternative edges without consuming the destina
   for (const value of [-1, NaN, Infinity]) assert.throws(() => engine.setCrossfade(value));
 });
 
-test('route choice honors probabilities supplied by the Python navigator', () => {
+test('default route choice retains the navigator 95/5 policy', () => {
   const audio = Float32Array.from({ length: 60 }, (_, i) => i);
   const routes = {
     0: [{ target: 1, probability: 0.95 }, { target: 2, probability: 0.05 }],
@@ -89,6 +89,46 @@ test('route choice honors probabilities supplied by the Python navigator', () =>
     engine.render([output]);
     assert.equal(output[20], expected);
   }
+});
+
+test('jump probability supports integer limits, equal alternatives, and forced safe jumps', () => {
+  const audio = Float32Array.from({ length: 60 }, (_, i) => i);
+  const result = graph({
+    0: [{ target: 1, probability: .95 }, { target: 0, probability: .025 }, { target: 2, probability: .025 }],
+    1: [{ target: 2, probability: 1 }], 2: [{ target: 0, probability: 1 }],
+  });
+  for (const [percent, random, expected] of [[0, .99, 20], [100, .1, 0], [100, .8, 40],
+    [50, .49, 20], [50, .5, 0], [50, .74, 0], [50, .75, 40]]) {
+    const engine = new ProceduralEngine([audio], 1000, result, () => random);
+    engine.setCrossfade(0);
+    engine.setJumpProbability(percent);
+    const output = new Float32Array(21);
+    engine.render([output]);
+    assert.equal(output[20], expected);
+  }
+  const engine = new ProceduralEngine([audio], 1000, result);
+  engine.setCrossfade(0);
+  engine.setJumpProbability(0);
+  engine.seek(.04); // No natural safe continuation: jump even at 0%.
+  const output = new Float32Array(21);
+  engine.render([output]);
+  assert.equal(output[20], 0);
+  engine.seek(.02); // No alternative: continue even at 100%.
+  engine.setJumpProbability(100);
+  engine.render([output]);
+  assert.equal(output[20], 40);
+  for (const value of [-1, 101, 5.5, NaN, Infinity]) assert.throws(() => engine.setJumpProbability(value));
+});
+
+test('changing jump probability leaves an already planned transition intact', () => {
+  const audio = Float32Array.from({ length: 60 }, (_, i) => i);
+  const result = graph({ 0: [{ target: 1, probability: .95 }, { target: 2, probability: .05 }] });
+  const engine = new ProceduralEngine([audio], 1000, result, () => .99);
+  engine.setJumpProbability(100);
+  engine.render([new Float32Array(15)]);
+  engine.setJumpProbability(0);
+  engine.render([new Float32Array(5)]);
+  assert.equal(engine.currentSample, 40);
 });
 
 test('rejects graphs without a safe start or playable bar boundaries', () => {

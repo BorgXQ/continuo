@@ -32,6 +32,7 @@ test('ordinary streaming never decodes; procedural handoff preserves position an
   assert.equal(prepared, 0);
   assert(Media.last.loop);
   const analysis = { startBar: 0 } as any;
+  player.setJumpProbability(25);
   player.setMode('procedural', analysis);
   assert(!Media.last.paused);
   Media.last.currentTime = 42;
@@ -40,6 +41,9 @@ test('ordinary streaming never decodes; procedural handoff preserves position an
   await new Promise(setImmediate);
   assert(Media.last.paused);
   assert.equal(messages[0].seek, 42);
+  assert.equal(messages[0].jumpProbability, 25);
+  player.setJumpProbability(100);
+  assert.deepEqual(messages.at(-1), { jumpProbability: 100 });
   (audio.node as any).port.onmessage({ data: { state: 'position', currentTime: 7, duration: 120 } });
   assert.deepEqual(player.getTimeline(), { currentTime: 7, duration: 120 });
   assert.deepEqual(messages.at(-1), { getPosition: true });
