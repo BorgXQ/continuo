@@ -37,6 +37,8 @@ Continuo targets **Windows x64**. Download the Setup `.exe` for your chosen vers
 
 Multiple tracks can play together; **NOW PLAYING** shows the most recently played or selected track first. Expand the section to access the others, adjust their volume, or stop them.
 
+Click a playing track's spectrum to see its loop map. Procedural mode shows playable alternative transitions, normal loop shows one end-to-start arc, and one-time playback shows no arcs. Hover or select an arc for its bar numbers and times; click the arrow and track title, or press Escape, to return.
+
 Rearrange soundboard tiles by dragging them. Right-click a track to rename it, assign a keyboard shortcut, analyze it, or remove it from the library. Analysis jobs run one at a time, queue automatically, and can be cancelled. Existing playback can continue while a track is analyzed, but busy tiles cannot start playback or change mode.
 
 ## Audio Settings
