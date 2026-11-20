@@ -19,6 +19,8 @@ test('stream handoff seeks to the existing position without restarting', () => {
   engine.seek(0.027);
   const output = new Float32Array(5);
   engine.render([output]);
+  assert.equal(engine.currentTime, .032);
+  assert.equal(engine.duration, .06);
   assert.deepEqual([...output], [27, 28, 29, 30, 31]);
   for (const position of [-1, NaN, Infinity]) assert.throws(() => engine.seek(position));
 });

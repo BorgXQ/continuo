@@ -29,6 +29,8 @@ export interface Track {
 }
 
 export interface Playback {
+  analysis?: AnalysisResult;
+  getTimeline: () => { currentTime: number; duration: number };
   focusedAt: number;
   stopping: boolean;
   fadeOut: (seconds: number) => boolean;
@@ -156,6 +158,8 @@ export function useTracks(outputChannel: string | null = null) {
         setError(`Cannot enable procedural playback: ${String(cause)}`);
       });
     const session: Playback = {
+      analysis: track.analysis,
+      getTimeline: () => player.getTimeline(),
       focusedAt: performance.now(),
       stopping: false,
       fadeOut: seconds => {
@@ -165,6 +169,7 @@ export function useTracks(outputChannel: string | null = null) {
       gain, analyser, mode: track.mode, started: performance.now(),
       setMode: (mode, result) => {
         session.mode = mode;
+        if (result) session.analysis = result;
         player.setMode(mode, result);
       },
       setCrossfade: seconds => player.setCrossfade(seconds),

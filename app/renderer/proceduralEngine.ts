@@ -16,6 +16,9 @@ export class ProceduralEngine {
   private overlap = 0;
   ended = false;
 
+  get currentTime(): number { return this.position / this.sampleRate; }
+  get duration(): number { return this.channels[0].length / this.sampleRate; }
+
   constructor(
     private readonly channels: Float32Array[],
     private readonly sampleRate: number,
