@@ -4,6 +4,10 @@ Notable user-facing changes to Continuo are recorded here.
 
 ## 1.3.0
 
+### Added
+
+- Clickable NOW PLAYING spectra reveal loop maps with mode-specific arcs, loop counts, transition details, and the current playback position.
+
 ### Changed
 
 - Increase the default transition crossfade to 150 ms; saved settings remain unchanged.
