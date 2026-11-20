@@ -2,6 +2,13 @@
 
 Notable user-facing changes to Continuo are recorded here.
 
+## 1.3.0
+
+### Changed
+
+- Find backward procedural loops using ten final-quarter exit features, level/CENS limits, and Pareto filtering. Natural continuation and jump probabilities remain unchanged.
+- Require reanalysis of saved graphs from the previous analysis method, preserving library items and audio settings. Previously procedural tracks return to one-time mode until reanalyzed.
+
 ## 1.2.0
 
 ### Added

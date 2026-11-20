@@ -1,4 +1,4 @@
-# Windows v1.2.0 Build
+# Windows v1.3.0 Build
 
 Build on Windows x64. End users should not need Python, Node, or FFmpeg.
 
@@ -22,10 +22,12 @@ npm run typecheck
 npm test
 .\.venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py'
 npm run build:backend
-.\dist\continuo-analysis\continuo-analysis.exe "C:\Music\your-track.mp3"
+.\dist\continuo-analysis\continuo-analysis.exe "C:\Music\your-track.mp3" 180
 ```
 
-Use an existing MP3 for the last command. The worker must finish with a JSON message whose state is `complete`. A successful build alone is not sufficient: scientific dependencies may need additional PyInstaller collection rules.
+Use an existing MP3 for the last command and replace `180` with its duration in seconds (at most 600). The worker must finish with a JSON message whose state is `complete` and whose result has `analysisVersion: "pareto-exits-v1"`. A successful build alone is not sufficient: scientific dependencies may need additional PyInstaller collection rules.
+
+The Pareto analyzer uses existing NumPy/librosa dependencies; no notebook, plotting, or labeling packages are needed at runtime. The build explicitly excludes those packages, including Matplotlib, Plotly, IPython, ipywidgets, pandas, and PyArrow. Keep `labeling_workbench/` out of distribution. Rebuild the backend for this change; previous saved analyses require reanalysis.
 
 After the backend test succeeds:
 
