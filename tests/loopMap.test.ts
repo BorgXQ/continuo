@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { loopArcs, loopDescription } from '../app/renderer/loopMap.ts';
+import { loopArcs, loopDescription } from '../app/renderer/loopMapData.ts';
 import { ANALYSIS_VERSION, type AnalysisResult } from '../app/shared/analysis.ts';
 
 const analysis: AnalysisResult = {

@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { Playback } from './useTracks';
-import { loopArcs, loopDescription, trackTime } from './loopMap';
+import { loopArcs, loopDescription, trackTime } from './loopMapData';
 
 export function LoopMap({ name, session, close }: { name: string; session: Playback; close: () => void }) {
   const [duration, setDuration] = useState(0);
