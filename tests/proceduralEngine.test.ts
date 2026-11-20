@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ProceduralEngine } from '../app/renderer/proceduralEngine.ts';
 import type { AnalysisResult } from '../app/shared/analysis.ts';
+import { ANALYSIS_VERSION } from '../app/shared/analysis.ts';
 
 function graph(routes: AnalysisResult['routes'], startBar: number | null = 0): AnalysisResult {
   return {
     bars: [[0, 0.02], [0.02, 0.04], [0.04, 0.06]],
-    sampleRate: 1000, tempo: 120, transitions: 1, routes, startBar,
+    analysisVersion: ANALYSIS_VERSION, sampleRate: 1000, tempo: 120, transitions: 1, routes, startBar,
   };
 }
 

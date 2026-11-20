@@ -1,4 +1,7 @@
+export const ANALYSIS_VERSION = 'pareto-exits-v1';
+
 export interface AnalysisResult {
+  analysisVersion: string;
   bars: [number, number][];
   sampleRate: number;
   tempo: number;

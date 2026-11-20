@@ -4,7 +4,7 @@ import { isAbsolute, join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { app, ipcMain, type WebContents } from 'electron';
 import type { AnalysisEvent, AnalysisResult } from '../shared/analysis';
-import { validateAnalysisDuration } from '../shared/analysis';
+import { ANALYSIS_VERSION, validateAnalysisDuration } from '../shared/analysis';
 import { isAudioFile } from '../shared/audioFormats';
 import { CONVERSION_ERROR, decodeWithElectron } from './analysisDecoder';
 
@@ -64,8 +64,10 @@ export function registerAnalysis(): void {
           const message = JSON.parse(line);
           if (message.state === 'running' && Number.isFinite(message.progress)) {
             send(job, { id: job.id, state: 'running', progress: Math.max(0, Math.min(99, message.progress)), stage: String(message.stage) });
-          } else if (message.state === 'complete') result = message.result;
-          else if (message.state === 'decode_required') needsDecode = true;
+          } else if (message.state === 'complete') {
+            if (message.result?.analysisVersion !== ANALYSIS_VERSION) failure = 'Analysis backend is outdated. Rebuild or reinstall Continuo.';
+            else result = message.result;
+          } else if (message.state === 'decode_required') needsDecode = true;
           else if (message.state === 'failed') failure = String(message.message);
         } catch { failure = 'Invalid response from the analysis worker.'; }
       });

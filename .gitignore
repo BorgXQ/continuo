@@ -13,3 +13,5 @@ out/
 build/
 dist/
 *.tsbuildinfo
+
+/labeling_workbench/

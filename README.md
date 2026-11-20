@@ -43,7 +43,7 @@ Rearrange soundboard tiles by dragging them. Right-click a track to rename it, a
 
 Click the gear icon above the version number to configure transition crossfade and global fade-in/out in **milliseconds**. All values save automatically and cannot be negative.
 
-- Transition crossfade (default: 100 ms) blends the source ending with audio immediately before the destination bar, preserving the destination's downbeat timing. Durations are capped at half the shorter participating bar and the available destination pre-roll.
+- Transition crossfade (default: 150 ms) blends the source ending with audio immediately before the destination bar, preserving the destination's downbeat timing. Durations are capped at half the shorter participating bar and the available destination pre-roll.
 - Fade-in (default: 0 ms) softens the start of playback.
 - Fade-out (default: 0 ms) continues playback after Stop is pressed, gradually reducing it to silence. It does not automatically fade the natural end of a file.
 - Press Stop again in NOW PLAYING to end a fade-out immediately.
@@ -62,15 +62,17 @@ On Windows, the database is at `%APPDATA%/continuo/library.sqlite`. Playback and
 ```mermaid
 flowchart LR
     A[Local audio] --> B[Beats and bars]
-    B --> C[Audio features]
-    C --> D[Structure similarity]
-    D --> E[Candidate transitions]
+    B --> C[Final-quarter spectra and CENS]
+    C --> D[Ten exit-comparison features]
+    D --> E[Error limits and Pareto frontier]
     E --> F[Music graph]
     F --> G[Probabilistic playback]
     G --> G
 ```
 
-The Python pipeline in `src/` compares musical context across bars. The desktop player uses the resulting graph and transition probabilities to choose where to continue, with short crossfades at alternative transitions.
+The Python pipeline in `src/` compares final-quarter exits to find backward jumps: source bar j is compared with the bar immediately before destination k. It measures level, slope, and residual errors across low/mid/high frequencies, plus CENS pitch-class distance. Candidates must have all three level errors ≤10 dB and CENS distance ≤0.1, with j and k-1 at least 16 bars apart. The global Pareto frontier retains candidates that cannot improve one feature without worsening another; it does not guarantee musical quality.
+
+The desktop player uses the resulting graph with short crossfades at alternative transitions. Where both natural continuation and alternatives are safe, natural continuation retains 95% probability and alternatives share 5%. Older saved analyses require reanalysis with this method; tracks and audio settings are preserved.
 
 Analysis uses Beat This! `small0` on CPU, followed by a DBN configured for four-beat bars. Not every track yields a safe procedural loop, and similar accompaniment does not guarantee seamless solo or melody continuation. Tracks without a safe loop remain playable in the other modes.
 

@@ -6,14 +6,37 @@ import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import { LibraryStore } from '../app/main/libraryStore.ts';
 import type { SavedTrack } from '../app/shared/library.ts';
+import { ANALYSIS_VERSION } from '../app/shared/analysis.ts';
 
 function track(id = 'track1', slot = 0): SavedTrack {
   return { id, slot, name: 'Track', path: join(tmpdir(), 'song.mp3'), mode: 'procedural', volume: 125,
     shortcut: 'KeyA', size: 1234, modified: 123456,
-    analysis: { bars: [[0, 2], [2, 4], [4, 6]], sampleRate: 44100, tempo: 120, transitions: 2, startBar: 0,
+    analysis: { analysisVersion: ANALYSIS_VERSION, bars: [[0, 2], [2, 4], [4, 6]], sampleRate: 44100, tempo: 120, transitions: 2, startBar: 0,
       routes: { 0: [{ target: 1, probability: 0.95 }, { target: 2, probability: 0.05 }],
         1: [{ target: 2, probability: 1 }], 2: [{ target: 0, probability: 1 }] } } };
 }
+
+test('old analysis requires reanalysis without losing track metadata or audio settings', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'continuo-analysis-version-'));
+  const path = join(directory, 'library.sqlite');
+  try {
+    const initial = new LibraryStore(path);
+    initial.save([track()]);
+    initial.saveSettings({ crossfade: .2, fadeIn: 1, fadeOut: 2 });
+    initial.close();
+    const raw = new DatabaseSync(path);
+    const saved = JSON.parse(String(raw.prepare('SELECT analysis FROM tracks').get()!.analysis));
+    delete saved.analysisVersion;
+    raw.prepare('UPDATE tracks SET analysis = ?').run(JSON.stringify(saved));
+    raw.close();
+    const restored = new LibraryStore(path);
+    assert.deepEqual(restored.load(), [{ ...track(), mode: 'once', analysis: undefined }]);
+    assert.deepEqual(restored.loadSettings(), { crossfade: .2, fadeIn: 1, fadeOut: 2 });
+    restored.save([track()]);
+    assert.deepEqual(restored.load(), [track()]);
+    restored.close();
+  } finally { rmSync(directory, { recursive: true }); }
+});
 
 test('common audio formats persist without an MP3-only restriction', () => {
   const store = new LibraryStore(':memory:');
@@ -97,7 +120,7 @@ test('moving tiles updates positions without rewriting analysis', () => {
 test('audio settings default to zero and reject negative or non-finite durations', () => {
   const store = new LibraryStore(':memory:');
   try {
-    assert.deepEqual(store.loadSettings(), { crossfade: 0.1, fadeIn: 0, fadeOut: 0 });
+    assert.deepEqual(store.loadSettings(), { crossfade: 0.15, fadeIn: 0, fadeOut: 0 });
     store.saveSettings({ crossfade: 0.1, fadeIn: 1.25, fadeOut: 2.5 });
     store.save([track()]);
     assert.deepEqual(store.loadSettings(), { crossfade: 0.1, fadeIn: 1.25, fadeOut: 2.5 });
@@ -110,7 +133,7 @@ test('audio settings default to zero and reject negative or non-finite durations
   } finally { store.close(); }
 });
 
-test('version-two settings gain the 100 ms default without losing saved fades', () => {
+test('version-two settings gain the 150 ms default without losing saved fades', () => {
   const directory = mkdtempSync(join(tmpdir(), 'continuo-crossfade-'));
   const path = join(directory, 'library.sqlite');
   try {
@@ -118,7 +141,7 @@ test('version-two settings gain the 100 ms default without losing saved fades', 
     old.exec('CREATE TABLE audio_settings (id INTEGER PRIMARY KEY, fade_in REAL, fade_out REAL); INSERT INTO audio_settings VALUES (1, 2, 3); PRAGMA user_version = 2;');
     old.close();
     const store = new LibraryStore(path);
-    assert.deepEqual(store.loadSettings(), { crossfade: 0.1, fadeIn: 2, fadeOut: 3 });
+    assert.deepEqual(store.loadSettings(), { crossfade: 0.15, fadeIn: 2, fadeOut: 3 });
     store.saveSettings({ crossfade: 0.25, fadeIn: 2, fadeOut: 3 });
     store.close();
     const reopened = new LibraryStore(path);
@@ -139,7 +162,7 @@ test('upgrading a version-one library preserves tracks and persists new settings
     old.close();
     const upgraded = new LibraryStore(path);
     assert.deepEqual(upgraded.load(), [track()]);
-    assert.deepEqual(upgraded.loadSettings(), { crossfade: 0.1, fadeIn: 0, fadeOut: 0 });
+    assert.deepEqual(upgraded.loadSettings(), { crossfade: 0.15, fadeIn: 0, fadeOut: 0 });
     upgraded.saveSettings({ crossfade: 0.1, fadeIn: 0.75, fadeOut: 3 });
     upgraded.close();
     const reopened = new LibraryStore(path);
