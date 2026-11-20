@@ -5,6 +5,7 @@ import { TrackPlayer } from '../app/renderer/trackPlayer.ts';
 class Media {
   static last: Media;
   currentTime = 0;
+  duration = 120;
   paused = true;
   loop = false;
   constructor() { Media.last = this; }
@@ -31,13 +32,21 @@ test('ordinary streaming never decodes; procedural handoff preserves position an
   assert.equal(prepared, 0);
   assert(Media.last.loop);
   const analysis = { startBar: 0 } as any;
+  player.setJumpProbability(25);
   player.setMode('procedural', analysis);
   assert(!Media.last.paused);
   Media.last.currentTime = 42;
+  assert.deepEqual(player.getTimeline(), { currentTime: 42, duration: 120 });
   resolve(audio);
   await new Promise(setImmediate);
   assert(Media.last.paused);
   assert.equal(messages[0].seek, 42);
+  assert.equal(messages[0].jumpProbability, 25);
+  player.setJumpProbability(100);
+  assert.deepEqual(messages.at(-1), { jumpProbability: 100 });
+  (audio.node as any).port.onmessage({ data: { state: 'position', currentTime: 7, duration: 120 } });
+  assert.deepEqual(player.getTimeline(), { currentTime: 7, duration: 120 });
+  assert.deepEqual(messages.at(-1), { getPosition: true });
   player.setMode('once');
   assert.equal(messages.at(-1).mode, 'once');
   assert.equal(prepared, 1);

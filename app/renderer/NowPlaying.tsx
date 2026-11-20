@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Square } from 'lucide-react';
 import type { Playback, Track } from './useTracks';
 import { MODE_LABELS } from './useTracks';
+import { LoopMap } from './LoopMap';
 
-function Spectrum({ session }: { session?: Playback }) {
+function Spectrum({ session, active = true }: { session?: Playback; active?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
+    if (!active) return;
     const element = canvas.current!;
     const ctx = element.getContext('2d')!;
     const bins = new Uint8Array(session?.analyser.frequencyBinCount ?? 128);
@@ -45,7 +47,7 @@ function Spectrum({ session }: { session?: Playback }) {
     }
     draw();
     return () => cancelAnimationFrame(frame);
-  }, [session]);
+  }, [session, active]);
   return <canvas ref={canvas} className="spectrum" aria-label={session ? 'Live frequency spectrum' : 'Empty frequency spectrum'} />;
 }
 
@@ -66,6 +68,26 @@ interface Props {
   stop: (id: string) => void;
   focus: (id: string) => void;
   volume: (id: string, value: number) => void;
+}
+
+function TrackVisuals({ track, session, focus }: { track: Track; session: Playback; focus: () => void }) {
+  const [mapOpen, setMapOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const close = () => { setMapOpen(false); requestAnimationFrame(() => trigger.current?.focus()); };
+  return <div className="playing-visuals" data-map-open={mapOpen}>
+    <div className="playing-summary" inert={mapOpen}>
+      <button ref={trigger} className="spectrum-toggle" aria-label={`View loops for ${track.name}`}
+        aria-expanded={mapOpen} onClick={() => setMapOpen(true)}>
+        <Spectrum session={session} active={!mapOpen} />
+      </button>
+      <button className="track-metadata" aria-label={`Focus ${track.name}`} onClick={focus}>
+        <span className="metadata-label">Track</span><span className="track-name">{track.name}</span>
+        <span className="metadata-label">Time</span><span><Elapsed started={session.started} /></span>
+        <span className="metadata-label">Status</span><span className="status">{session.stopping ? 'Fading out' : MODE_LABELS[session.mode]}</span>
+      </button>
+    </div>
+    {mapOpen && <LoopMap name={track.name} session={session} close={close} />}
+  </div>;
 }
 
 function VolumeControl({ track, change }: { track: Track; change: (value: number) => void }) {
@@ -120,12 +142,7 @@ export function NowPlaying({ tracks, playing, stop, focus, volume }: Props) {
       <div className="playing-list" id="playing-list">
         {visible.length ? visible.map(track => (
           <div className={`playing-row ${current?.id === track.id ? 'selected' : ''}`} key={track.id}>
-            <Spectrum session={playing[track.id]} />
-            <button className="track-metadata" aria-label={`Focus ${track.name}`} title={`Focus ${track.name}`} onClick={() => { focus(track.id); setExpanded(false); }}>
-              <span className="metadata-label">Track</span><span className="track-name">{track.name}</span>
-              <span className="metadata-label">Time</span><span><Elapsed started={playing[track.id].started} /></span>
-              <span className="metadata-label">Status</span><span className="status">{playing[track.id].stopping ? 'Fading out' : MODE_LABELS[playing[track.id].mode]}</span>
-            </button>
+            <TrackVisuals track={track} session={playing[track.id]} focus={() => { focus(track.id); setExpanded(false); }} />
             <div className="track-controls">
               <VolumeControl track={track} change={value => volume(track.id, value)} />
               <button className="stop-button" title={playing[track.id].stopping ? `Stop ${track.name} immediately` : `Stop ${track.name}`} aria-label={`Stop ${track.name}`} onClick={() => stop(track.id)}><Square size={15} /> Stop</button>

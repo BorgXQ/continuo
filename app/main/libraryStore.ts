@@ -4,6 +4,7 @@ import { isAudioFile } from '../shared/audioFormats.ts';
 import type { AnalysisResult } from '../shared/analysis';
 import { ANALYSIS_VERSION } from '../shared/analysis.ts';
 import type { AudioSettings, SavedTrack } from '../shared/library';
+import { isJumpProbability } from '../shared/library.ts';
 
 // Natural edges follow consecutive safe bars and need not be stored.
 function encode(result: AnalysisResult): string {
@@ -36,7 +37,7 @@ export class LibraryStore {
     this.db = new DatabaseSync(path);
     this.db.exec('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;');
     const version = this.db.prepare('PRAGMA user_version').get()!.user_version;
-    if (version !== 0 && version !== 1 && version !== 2 && version !== 3) { this.db.close(); throw new Error('Unsupported library database version.'); }
+    if (![0, 1, 2, 3, 4].includes(Number(version))) { this.db.close(); throw new Error('Unsupported library database version.'); }
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS tracks (
         id TEXT PRIMARY KEY, slot INTEGER NOT NULL UNIQUE,
@@ -51,8 +52,9 @@ export class LibraryStore {
       );
       INSERT OR IGNORE INTO audio_settings (id, fade_in, fade_out) VALUES (1, 0, 0);
     `);
-    if (version !== 3) this.db.exec('ALTER TABLE audio_settings ADD COLUMN crossfade REAL NOT NULL DEFAULT 0.15 CHECK (crossfade >= 0);');
-    this.db.exec('PRAGMA user_version = 3;');
+    if (Number(version) < 3) this.db.exec('ALTER TABLE audio_settings ADD COLUMN crossfade REAL NOT NULL DEFAULT 0.15 CHECK (crossfade >= 0);');
+    if (Number(version) < 4) this.db.exec('ALTER TABLE audio_settings ADD COLUMN jump_probability INTEGER NOT NULL DEFAULT 5 CHECK (jump_probability BETWEEN 0 AND 100 AND jump_probability = CAST(jump_probability AS INTEGER));');
+    this.db.exec('PRAGMA user_version = 4;');
   }
 
   load(): SavedTrack[] {
@@ -68,15 +70,17 @@ export class LibraryStore {
   }
 
   loadSettings(): AudioSettings {
-    const row = this.db.prepare('SELECT crossfade, fade_in, fade_out FROM audio_settings WHERE id = 1').get()!;
-    return { crossfade: Number(row.crossfade), fadeIn: Number(row.fade_in), fadeOut: Number(row.fade_out) };
+    const row = this.db.prepare('SELECT crossfade, fade_in, fade_out, jump_probability FROM audio_settings WHERE id = 1').get()!;
+    return { crossfade: Number(row.crossfade), fadeIn: Number(row.fade_in), fadeOut: Number(row.fade_out), jumpProbability: Number(row.jump_probability) };
   }
 
   saveSettings(settings: AudioSettings): void {
     if (!settings || ![settings.crossfade, settings.fadeIn, settings.fadeOut].every(value => Number.isFinite(value) && value >= 0)) {
       throw new Error('Fade durations must be finite, non-negative numbers.');
     }
-    this.db.prepare('UPDATE audio_settings SET crossfade = ?, fade_in = ?, fade_out = ? WHERE id = 1').run(settings.crossfade, settings.fadeIn, settings.fadeOut);
+    if (!isJumpProbability(settings.jumpProbability)) throw new Error('Jump probability must be an integer from 0 to 100.');
+    this.db.prepare('UPDATE audio_settings SET crossfade = ?, fade_in = ?, fade_out = ?, jump_probability = ? WHERE id = 1')
+      .run(settings.crossfade, settings.fadeIn, settings.fadeOut, settings.jumpProbability);
   }
 
   file(id: string): { path: string; size: number; modified: number } {

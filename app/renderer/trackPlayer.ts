@@ -14,6 +14,8 @@ export class TrackPlayer {
   private started = false;
   private mode: PlayMode = 'once';
   private crossfade = 0.15;
+  private jumpProbability = 5;
+  private timeline = { currentTime: 0, duration: 0 };
   private timer?: ReturnType<typeof setTimeout>;
   private ramp = { start: 0, duration: 0, from: 1, to: 1 };
 
@@ -96,18 +98,35 @@ export class TrackPlayer {
     audio.node.port.onmessage = event => {
       if (event.data.state === 'ended') this.ended();
       else if (event.data.state === 'failed') this.failed(new Error(String(event.data.message)));
+      else if (event.data.state === 'position') this.timeline = {
+        currentTime: event.data.currentTime, duration: event.data.duration,
+      };
     };
+    this.timeline = { currentTime: this.media.currentTime, duration: this.media.duration };
     audio.node.connect(this.envelope);
-    audio.node.port.postMessage({ analysis, mode: 'procedural', crossfade: this.crossfade,
+    audio.node.port.postMessage({ analysis, mode: 'procedural', crossfade: this.crossfade, jumpProbability: this.jumpProbability,
       seek: this.media.currentTime, play: true, fadeIn: 0 });
     this.media.pause();
     this.source.disconnect();
     // Once decoded, retain this engine through mode changes to avoid seeking gaps.
   }
 
+  getTimeline(): { currentTime: number; duration: number } {
+    if (this.audio && !this.disposed) {
+      this.audio.node.port.postMessage({ getPosition: true });
+      return this.timeline;
+    }
+    return { currentTime: this.media.currentTime, duration: this.media.duration };
+  }
+
   setCrossfade(seconds: number): void {
     this.crossfade = seconds;
     this.audio?.node.port.postMessage({ crossfade: seconds });
+  }
+
+  setJumpProbability(percent: number): void {
+    this.jumpProbability = percent;
+    this.audio?.node.port.postMessage({ jumpProbability: percent });
   }
 
   fadeOut(seconds: number): boolean {

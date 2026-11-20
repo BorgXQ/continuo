@@ -72,6 +72,24 @@ p { margin: 4px 0; }
 .playing-row { display: grid; grid-template-columns: minmax(130px, .8fr) minmax(220px, 1.7fr) minmax(185px, .9fr); gap: 24px; padding: 8px 0; min-height: 124px; }
 .playing-row + .playing-row { border-top: 1px solid #343b36; padding-top: 20px; margin-top: 12px; }
 .spectrum { display: block; width: 100%; height: 96px; align-self: center; }
+.playing-visuals { position: relative; grid-column: 1 / span 2; display: grid; grid-template-columns: subgrid; min-width: 0; }
+.playing-summary { display: contents; }
+.playing-visuals[data-map-open='true'] .playing-summary { visibility: hidden; }
+.spectrum-toggle { padding: 0; min-width: 0; align-self: center; }
+.spectrum-toggle:active { transform: none; }
+.spectrum-toggle:hover canvas, .spectrum-toggle:focus-visible canvas { filter: brightness(1.15); }
+.loop-map-view { position: absolute; inset: 0; display: grid; grid-template-rows: 24px minmax(0, 1fr); min-width: 0; padding-right: 24px; border-right: 1px dashed #505952; }
+.loop-map-heading { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.loop-map-back { flex-shrink: 0; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; height: 24px; font-size: 12px; color: #ddd; }
+.loop-map-back:hover { color: #fff; }
+.loop-map-details { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: #a7b4ab; }
+.loop-map-details.status { color: #75d995; }
+.loop-map-plot { display: block; width: 100%; height: 100%; min-height: 0; overflow: hidden; }
+.loop-map-arc { cursor: pointer; outline: none; }
+.loop-map-ink { opacity: .55; pointer-events: none; }
+.loop-map-arc.highlighted .loop-map-ink { opacity: 1; stroke-width: 2.3; }
+.loop-map-arc.dim .loop-map-ink { opacity: .09; }
+.loop-map-arc:focus-visible .loop-map-hit { stroke: #fff; stroke-opacity: .15; }
 .track-metadata { border-left: 1px dashed #505952; border-right: 1px dashed #505952; padding: 0 24px; display: grid; grid-template-columns: 65px minmax(0, 1fr); gap: 8px 12px; text-align: left; align-content: center; font-size: 14px; }
 button.track-metadata:hover { background: #171c18; }
 .metadata-label { color: #919a94; }
@@ -171,6 +189,7 @@ dialog p { font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
   .expanded .playing-list { max-height: 350px; }
   .playing-row { grid-template-columns: 72px minmax(0, 1fr); gap: 16px 12px; }
   .track-metadata { border-right: 0; padding-right: 0; }
+  .loop-map-view { border-right: 0; padding-right: 0; }
   .spectrum { height: 78px; }
   .track-controls { grid-column: 1 / -1; display: grid; grid-template-columns: 100px minmax(0, 1fr) 62px; align-items: center; gap: 12px; }
   .track-controls label { font-size: 11px; gap: 6px; }

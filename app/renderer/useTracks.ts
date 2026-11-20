@@ -29,11 +29,14 @@ export interface Track {
 }
 
 export interface Playback {
+  analysis?: AnalysisResult;
+  getTimeline: () => { currentTime: number; duration: number };
   focusedAt: number;
   stopping: boolean;
   fadeOut: (seconds: number) => boolean;
   setMode: (mode: PlayMode, analysis?: AnalysisResult) => void;
   setCrossfade: (seconds: number) => void;
+  setJumpProbability: (percent: number) => void;
   gain: GainNode;
   analyser: AnalyserNode;
   started: number;
@@ -65,6 +68,10 @@ export function useTracks(outputChannel: string | null = null) {
   useEffect(() => {
     for (const session of sessions.current.values()) session.setCrossfade(settings.values.crossfade);
   }, [settings.values.crossfade]);
+
+  useEffect(() => {
+    for (const session of sessions.current.values()) session.setJumpProbability(settings.values.jumpProbability);
+  }, [settings.values.jumpProbability]);
 
   function snapshot(): SavedTrack[] {
     return slotState.current.flatMap((track, slot) => track ? [{
@@ -156,6 +163,8 @@ export function useTracks(outputChannel: string | null = null) {
         setError(`Cannot enable procedural playback: ${String(cause)}`);
       });
     const session: Playback = {
+      analysis: track.analysis,
+      getTimeline: () => player.getTimeline(),
       focusedAt: performance.now(),
       stopping: false,
       fadeOut: seconds => {
@@ -165,9 +174,11 @@ export function useTracks(outputChannel: string | null = null) {
       gain, analyser, mode: track.mode, started: performance.now(),
       setMode: (mode, result) => {
         session.mode = mode;
+        if (result) session.analysis = result;
         player.setMode(mode, result);
       },
       setCrossfade: seconds => player.setCrossfade(seconds),
+      setJumpProbability: percent => player.setJumpProbability(percent),
       dispose: () => {
         player.dispose();
         gain.disconnect();
@@ -186,6 +197,7 @@ export function useTracks(outputChannel: string | null = null) {
       await Promise.all([output.current!.ready, ctx.resume()]);
       if (!current()) return;
       player.setCrossfade(settings.current.current.crossfade);
+      player.setJumpProbability(settings.current.current.jumpProbability);
       await player.start(session.mode, track.analysis, settings.current.current.fadeIn);
       if (!current()) return;
       session.started = performance.now();

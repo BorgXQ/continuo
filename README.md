@@ -37,15 +37,20 @@ Continuo targets **Windows x64**. Download the Setup `.exe` for your chosen vers
 
 Multiple tracks can play together; **NOW PLAYING** shows the most recently played or selected track first. Expand the section to access the others, adjust their volume, or stop them.
 
+Click a playing track's spectrum to see its loop map. Procedural mode shows playable alternative transitions, normal loop shows one end-to-start arc, and one-time playback shows no arcs. Hover or select an arc for its bar numbers and times; click the arrow and track title, or press Escape, to return.
+
 Rearrange soundboard tiles by dragging them. Right-click a track to rename it, assign a keyboard shortcut, analyze it, or remove it from the library. Analysis jobs run one at a time, queue automatically, and can be cancelled. Existing playback can continue while a track is analyzed, but busy tiles cannot start playback or change mode.
 
 ## Audio Settings
 
-Click the gear icon above the version number to configure transition crossfade and global fade-in/out in **milliseconds**. All values save automatically and cannot be negative.
+Click the gear icon above the version number to configure transition crossfade and global fade-in/out in **milliseconds**, and jump probability as an integer percentage. All values save automatically. Click outside Configuration to close it.
 
 - Transition crossfade (default: 150 ms) blends the source ending with audio immediately before the destination bar, preserving the destination's downbeat timing. Durations are capped at half the shorter participating bar and the available destination pre-roll.
 - Fade-in (default: 0 ms) softens the start of playback.
 - Fade-out (default: 0 ms) continues playback after Stop is pressed, gradually reducing it to silence. It does not automatically fade the natural end of a file.
+- Jump probability (default: 5%) controls the chance of an alternative at each eligible bar. Values from 0 to 100 apply to future route decisions without reanalysis; an already planned transition completes unchanged. When no safe natural continuation exists, a jump remains mandatory even at 0%.
+
+**Reset to default** asks for confirmation and resets only these four audio settings. Discord credentials, connection, output selection, and track settings are preserved.
 - Press Stop again in NOW PLAYING to end a fade-out immediately.
 - **Device output** uses the system default audio device. Connect a Discord bot to select an accessible voice channel instead; see [Discord setup](docs/discord.md).
 
@@ -72,7 +77,7 @@ flowchart LR
 
 The Python pipeline in `src/` compares final-quarter exits to find backward jumps: source bar j is compared with the bar immediately before destination k. It measures level, slope, and residual errors across low/mid/high frequencies, plus CENS pitch-class distance. Candidates must have all three level errors ≤10 dB and CENS distance ≤0.1, with j and k-1 at least 16 bars apart. The global Pareto frontier retains candidates that cannot improve one feature without worsening another; it does not guarantee musical quality.
 
-The desktop player uses the resulting graph with short crossfades at alternative transitions. Where both natural continuation and alternatives are safe, natural continuation retains 95% probability and alternatives share 5%. Older saved analyses require reanalysis with this method; tracks and audio settings are preserved.
+The desktop player uses the resulting graph with short crossfades at alternative transitions. By default, where both natural continuation and alternatives are safe, natural continuation has 95% probability and alternatives share 5%. The global jump probability setting changes that split. Older saved analyses require reanalysis with this method; tracks and audio settings are preserved.
 
 Analysis uses Beat This! `small0` on CPU, followed by a DBN configured for four-beat bars. Not every track yields a safe procedural loop, and similar accompaniment does not guarantee seamless solo or melody continuation. Tracks without a safe loop remain playable in the other modes.
 

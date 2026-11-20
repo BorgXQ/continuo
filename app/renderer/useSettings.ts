@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { DEFAULT_AUDIO_SETTINGS, type AudioSettings } from '../shared/library';
+import { DEFAULT_AUDIO_SETTINGS, isJumpProbability, type AudioSettings } from '../shared/library';
 
 export function useSettings(reportError: (message: string) => void) {
   const [values, setValues] = useState(DEFAULT_AUDIO_SETTINGS);
@@ -8,9 +8,9 @@ export function useSettings(reportError: (message: string) => void) {
   const [error, setError] = useState('');
   const ready = useRef(false);
 
-  function update(key: keyof AudioSettings, value: number) {
-    if (!ready.current || !Number.isFinite(value) || value < 0) return;
-    current.current = { ...current.current, [key]: value };
+  function save(settings: AudioSettings) {
+    if (!ready.current) return;
+    current.current = settings;
     setValues(current.current);
     setError('');
     void window.library?.saveSettings(current.current).catch(cause => {
@@ -19,6 +19,13 @@ export function useSettings(reportError: (message: string) => void) {
       reportError(message);
     });
   }
+
+  function update(key: keyof AudioSettings, value: number) {
+    if (!Number.isFinite(value) || value < 0 || (key === 'jumpProbability' && !isJumpProbability(value))) return;
+    save({ ...current.current, [key]: value });
+  }
+
+  function reset() { save({ ...DEFAULT_AUDIO_SETTINGS }); }
 
   useEffect(() => {
     let disposed = false;
@@ -48,5 +55,5 @@ export function useSettings(reportError: (message: string) => void) {
     return () => { disposed = true; window.removeEventListener('beforeunload', flush); };
   }, []);
 
-  return { values, current, loading, error, update };
+  return { values, current, loading, error, update, reset };
 }
