@@ -51,7 +51,7 @@ export class LibraryStore {
       );
       INSERT OR IGNORE INTO audio_settings (id, fade_in, fade_out) VALUES (1, 0, 0);
     `);
-    if (version !== 3) this.db.exec('ALTER TABLE audio_settings ADD COLUMN crossfade REAL NOT NULL DEFAULT 0.1 CHECK (crossfade >= 0);');
+    if (version !== 3) this.db.exec('ALTER TABLE audio_settings ADD COLUMN crossfade REAL NOT NULL DEFAULT 0.15 CHECK (crossfade >= 0);');
     this.db.exec('PRAGMA user_version = 3;');
   }
 

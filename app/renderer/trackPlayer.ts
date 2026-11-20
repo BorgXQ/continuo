@@ -13,7 +13,7 @@ export class TrackPlayer {
   private stopping = false;
   private started = false;
   private mode: PlayMode = 'once';
-  private crossfade = 0.1;
+  private crossfade = 0.15;
   private timer?: ReturnType<typeof setTimeout>;
   private ramp = { start: 0, duration: 0, from: 1, to: 1 };
 
