@@ -6,14 +6,37 @@ import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import { LibraryStore } from '../app/main/libraryStore.ts';
 import type { SavedTrack } from '../app/shared/library.ts';
+import { ANALYSIS_VERSION } from '../app/shared/analysis.ts';
 
 function track(id = 'track1', slot = 0): SavedTrack {
   return { id, slot, name: 'Track', path: join(tmpdir(), 'song.mp3'), mode: 'procedural', volume: 125,
     shortcut: 'KeyA', size: 1234, modified: 123456,
-    analysis: { bars: [[0, 2], [2, 4], [4, 6]], sampleRate: 44100, tempo: 120, transitions: 2, startBar: 0,
+    analysis: { analysisVersion: ANALYSIS_VERSION, bars: [[0, 2], [2, 4], [4, 6]], sampleRate: 44100, tempo: 120, transitions: 2, startBar: 0,
       routes: { 0: [{ target: 1, probability: 0.95 }, { target: 2, probability: 0.05 }],
         1: [{ target: 2, probability: 1 }], 2: [{ target: 0, probability: 1 }] } } };
 }
+
+test('old analysis requires reanalysis without losing track metadata or audio settings', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'continuo-analysis-version-'));
+  const path = join(directory, 'library.sqlite');
+  try {
+    const initial = new LibraryStore(path);
+    initial.save([track()]);
+    initial.saveSettings({ crossfade: .2, fadeIn: 1, fadeOut: 2 });
+    initial.close();
+    const raw = new DatabaseSync(path);
+    const saved = JSON.parse(String(raw.prepare('SELECT analysis FROM tracks').get()!.analysis));
+    delete saved.analysisVersion;
+    raw.prepare('UPDATE tracks SET analysis = ?').run(JSON.stringify(saved));
+    raw.close();
+    const restored = new LibraryStore(path);
+    assert.deepEqual(restored.load(), [{ ...track(), mode: 'once', analysis: undefined }]);
+    assert.deepEqual(restored.loadSettings(), { crossfade: .2, fadeIn: 1, fadeOut: 2 });
+    restored.save([track()]);
+    assert.deepEqual(restored.load(), [track()]);
+    restored.close();
+  } finally { rmSync(directory, { recursive: true }); }
+});
 
 test('common audio formats persist without an MP3-only restriction', () => {
   const store = new LibraryStore(':memory:');

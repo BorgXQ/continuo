@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { isAbsolute } from 'node:path';
 import { isAudioFile } from '../shared/audioFormats.ts';
 import type { AnalysisResult } from '../shared/analysis';
+import { ANALYSIS_VERSION } from '../shared/analysis.ts';
 import type { AudioSettings, SavedTrack } from '../shared/library';
 
 // Natural edges follow consecutive safe bars and need not be stored.
@@ -15,10 +16,11 @@ function encode(result: AnalysisResult): string {
   });
 }
 
-function decode(value: string): AnalysisResult {
+function decode(value: string): AnalysisResult | undefined {
   const { safeBars, alternatives, ...metadata } = JSON.parse(value) as Omit<AnalysisResult, 'routes'> & {
     safeBars: number[]; alternatives: [number, number, number][];
   };
+  if (metadata.analysisVersion !== ANALYSIS_VERSION) return undefined;
   const routes: AnalysisResult['routes'] = Object.fromEntries(safeBars.map(bar => [bar, []]));
   for (const [source, target, probability] of alternatives) routes[source].push({ target, probability });
   for (const bar of safeBars) {
@@ -54,13 +56,15 @@ export class LibraryStore {
   }
 
   load(): SavedTrack[] {
-    return this.db.prepare('SELECT * FROM tracks ORDER BY slot').all().map(row => ({
-      id: String(row.id), slot: Number(row.slot), name: String(row.name), path: String(row.path),
-      mode: row.mode as SavedTrack['mode'], volume: Number(row.volume),
-      shortcut: row.shortcut === null ? null : String(row.shortcut),
-      size: Number(row.size), modified: Number(row.modified),
-      analysis: row.analysis === null ? undefined : decode(String(row.analysis)),
-    }));
+    return this.db.prepare('SELECT * FROM tracks ORDER BY slot').all().map(row => {
+      const analysis = row.analysis === null ? undefined : decode(String(row.analysis));
+      return {
+        id: String(row.id), slot: Number(row.slot), name: String(row.name), path: String(row.path),
+        mode: row.mode === 'procedural' && !analysis ? 'once' : row.mode as SavedTrack['mode'], volume: Number(row.volume),
+        shortcut: row.shortcut === null ? null : String(row.shortcut),
+        size: Number(row.size), modified: Number(row.modified), analysis,
+      };
+    });
   }
 
   loadSettings(): AudioSettings {
