@@ -20,16 +20,6 @@ def build_music_graph(
             "type": "natural",
         })
 
-    metadata_fields = (
-        "matched_bar",
-        "structure_similarity",
-        "boundary_score",
-        "boundary_harmony",
-        "boundary_timbre",
-        "boundary_energy",
-        "boundary_brightness",
-        "boundary_rhythm",
-    )
     seen_transitions = set()
 
     for transition in transitions:
@@ -67,9 +57,8 @@ def build_music_graph(
             "type": "transition",
         }
         edge.update({
-            field: transition[field]
-            for field in metadata_fields
-            if field in transition
+            field: value for field, value in transition.items()
+            if field not in {"source_bar", "target_bar", "type"}
         })
         graph[source_bar].append(edge)
 

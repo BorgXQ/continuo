@@ -18,9 +18,8 @@ def analyze(path, expected_duration):
     emit(state="running", progress=1, stage="Loading analysis tools")
     import librosa
     from .analyze_timing import analyze_timing
-    from .analyze_features import analyze_features
-    from .discover_structure import discover_structure
-    from .discover_transitions import discover_transitions
+    from .exit_features import ANALYSIS_VERSION
+    from .pareto_transitions import discover_pareto_transitions
     from .build_music_graph import build_music_graph
     from .music_navigator import MusicNavigator
 
@@ -28,16 +27,13 @@ def analyze(path, expected_duration):
     sr = 44100
     emit(state="running", progress=10, stage="Detecting beats and bars")
     timing = analyze_timing(path, beats_per_bar=(4,), audio=audio, sample_rate=sr)
-    emit(state="running", progress=45, stage="Extracting audio features")
-    features = analyze_features(audio, sr, timing)
-    if len(features) != len(timing["bars"]):
-        raise ValueError("Feature bars do not match detected timing bars.")
-    emit(state="running", progress=80, stage="Comparing musical structure")
-    structure = discover_structure(features)
-    emit(state="running", progress=90, stage="Finding transitions")
-    transitions = discover_transitions(features, structure)
+    emit(state="running", progress=45, stage="Extracting exit spectra and CENS")
+    transitions = discover_pareto_transitions(
+        audio, sr, timing,
+        progress=lambda value, stage: emit(state="running", progress=value, stage=stage),
+    )
     emit(state="running", progress=95, stage="Building playback graph")
-    graph = build_music_graph(len(features), transitions)
+    graph = build_music_graph(len(timing["bars"]), transitions)
     # A valid analysis can have no indefinitely traversable region.
     routes = {}
     start_bar = None
@@ -56,6 +52,7 @@ def analyze(path, expected_duration):
             for bar in sorted(navigator.safe_nodes)
         }
     return {
+        "analysisVersion": ANALYSIS_VERSION,
         "bars": [[float(start), float(end)] for start, end in timing["bars"]],
         "sampleRate": int(sr),
         "tempo": float(timing["tempo_bpm"]),
