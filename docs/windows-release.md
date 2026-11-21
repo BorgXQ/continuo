@@ -1,4 +1,4 @@
-# Windows v1.3.0 Build
+# Windows v1.4.0 Build
 
 Build on Windows x64. End users should not need Python, Node, or FFmpeg.
 
@@ -6,7 +6,7 @@ Build on Windows x64. End users should not need Python, Node, or FFmpeg.
 
 - Python 3.11 with the Windows Python launcher (`py`).
 - Node 24 and npm.
-- Git and Microsoft C++ Build Tools with the C++ workload and Windows SDK, for the DBN source dependency.
+- Git to obtain the source repository.
 
 ## Build
 
@@ -25,7 +25,7 @@ npm run build:backend
 .\dist\continuo-analysis\continuo-analysis.exe "C:\Music\your-track.mp3" 180
 ```
 
-Use an existing MP3 for the last command and replace `180` with its duration in seconds (at most 600). The worker must finish with a JSON message whose state is `complete` and whose result has `analysisVersion: "pareto-exits-v1"`. A successful build alone is not sufficient: scientific dependencies may need additional PyInstaller collection rules.
+Use an existing MP3 for the last command and replace `180` with its duration in seconds (at most 600). The worker must finish with a JSON message whose state is `complete` and whose result has `analysisVersion: "pareto-exits-v2"`. A successful build alone is not sufficient: scientific dependencies may need additional PyInstaller collection rules.
 
 The Pareto analyzer uses existing NumPy/librosa dependencies; no notebook, plotting, or labeling packages are needed at runtime. The build explicitly excludes those packages, including Matplotlib, Plotly, IPython, ipywidgets, pandas, and PyArrow. Keep `labeling_workbench/` out of distribution. Rebuild the backend for this change; previous saved analyses require reanalysis.
 
@@ -35,7 +35,7 @@ After the backend test succeeds:
 npm run make -- --platform=win32 --arch=x64
 ```
 
-The installer is under `out/make/squirrel.windows/x64/`. The backend folder is included automatically. Packaged Windows builds use it, never system Python or CONTINUO_PYTHON. Development still uses the existing Python launch mechanism. Rebuild the backend whenever Python source or dependencies change. The build script uses CONTINUO_PYTHON when set, otherwise .venv. It downloads and validates Beat This!'s small0 checkpoint and includes it and its MIT license in the bundle. This download requires internet access during the build, not during installed-app analysis. The DBN uses madmom code, not madmom model files; a packaging hook omits model data and a post-build check rejects accidental inclusion.
+The installer is under `out/make/squirrel.windows/x64/`. The backend folder is included automatically. Packaged Windows builds use it, never system Python or CONTINUO_PYTHON. Development still uses the existing Python launch mechanism. Rebuild the backend whenever Python source or dependencies change. The build script uses CONTINUO_PYTHON when set, otherwise .venv. It downloads and validates Beat This!'s small0 checkpoint and includes it and its MIT license in the bundle. This download requires internet access during the build, not during installed-app analysis. Beat tracking uses minimal postprocessing without DBN; madmom is explicitly excluded from the backend bundle.
 
 ## Release Checks
 
@@ -52,6 +52,6 @@ The installer is under `out/make/squirrel.windows/x64/`. The backend folder is i
 
 This build setup is not a completed license audit. Include the license notices for bundled Python packages, the runtime, and Electron's media components; meet any applicable source-distribution obligations before publishing.
 
-Beat This!'s code and published model weights are MIT-licensed. Its license is included alongside the bundled checkpoint. The authors note that some training material has separate restrictions; review their licensing statement: https://github.com/CPJKU/beat_this#license The backend includes no madmom pretrained models. The BSD license notice for madmom's DBN code is bundled alongside the checkpoint. The font license is already included in the Electron resources.
+Beat This!'s code and published model weights are MIT-licensed. Its license is included alongside the bundled checkpoint. The authors note that some training material has separate restrictions; review their licensing statement: https://github.com/CPJKU/beat_this#license The font license is already included in the Electron resources.
 
 Unsigned builds can encounter Windows security warnings. Do not instruct users to disable security software; investigate/sign the release as appropriate.
