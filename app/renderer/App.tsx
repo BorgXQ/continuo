@@ -23,7 +23,7 @@ export function App() {
         </div>
         <div className="credits">
           <button className="icon-button settings-button" title="Configuration" aria-label="Configuration" onClick={() => setConfigurationOpen(true)}><Settings size={18} /></button>
-          <p>v1.3.0</p>
+          <p>v1.4.0</p>
           <p>by BorgXQ</p>
         </div>
       </header>
