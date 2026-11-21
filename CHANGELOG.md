@@ -2,6 +2,15 @@
 
 Notable user-facing changes to Continuo are recorded here.
 
+## 1.4.0
+
+### Changed
+
+- Use Beat This! without DBN, defining bars from consecutive predicted downbeats instead of enforcing 4/4. Accuracy still depends on detected downbeats.
+- Automatically tighten all three slope limits when more than 40 Pareto transitions remain, stopping at 10–40 results or 10 dB/s and reverting steps that leave fewer than 10.
+- Require reanalysis of saved graphs from the previous analysis method, preserving library items and audio settings. Previously procedural tracks return to one-time mode until reanalyzed.
+- Remove the DBN dependency from Python requirements and the packaged backend.
+
 ## 1.3.0
 
 ### Added
