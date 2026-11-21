@@ -79,7 +79,9 @@ The Python pipeline in `src/` compares final-quarter exits to find backward jump
 
 The desktop player uses the resulting graph with short crossfades at alternative transitions. By default, where both natural continuation and alternatives are safe, natural continuation has 95% probability and alternatives share 5%. The global jump probability setting changes that split. Older saved analyses require reanalysis with this method; tracks and audio settings are preserved.
 
-Analysis uses Beat This! `small0` on CPU, followed by a DBN configured for four-beat bars. Not every track yields a safe procedural loop, and similar accompaniment does not guarantee seamless solo or melody continuation. Tracks without a safe loop remain playable in the other modes.
+When more than 40 Pareto transitions remain, analysis tries low/mid/high slope caps of 50, 40, 30, 20, 15, then 10 dB/s. It stops at 10–40 transitions or the lowest cap, restoring the previous result if a step leaves fewer than 10. This can still leave more than 40 transitions.
+
+Analysis uses Beat This! `small0` on CPU, with minimal postprocessing and no fixed meter; consecutive predicted downbeats define bars. Not every track yields a safe procedural loop, and similar accompaniment does not guarantee seamless solo or melody continuation. Tracks without a safe loop remain playable in the other modes.
 
 ## Development
 
@@ -105,7 +107,7 @@ npm ci
 npm start
 ```
 
-Development uses `.venv`, with `bin/python` on Linux/macOS or `Scripts/python.exe` on Windows. Set `CONTINUO_PYTHON` to an absolute interpreter path to override it. Building the DBN dependency requires Git and a C/C++ compiler (Microsoft C++ Build Tools on Windows). The Python backend does not bundle the FFmpeg or FFprobe command-line executables; Electron retains its own media libraries.
+Development uses `.venv`, with `bin/python` on Linux/macOS or `Scripts/python.exe` on Windows. Set `CONTINUO_PYTHON` to an absolute interpreter path to override it. The Python backend does not bundle the FFmpeg or FFprobe command-line executables; Electron retains its own media libraries.
 
 ```sh
 npm run typecheck
