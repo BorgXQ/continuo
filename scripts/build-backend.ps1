@@ -7,7 +7,6 @@ if ($LASTEXITCODE -ne 0) { throw 'Unsupported Python environment.' }
 & $python scripts/prepare_model.py
 if ($LASTEXITCODE -ne 0) { throw 'Checkpoint preparation failed.' }
 $models = (Resolve-Path 'build/models').Path
-$hooks = (Resolve-Path 'scripts/hooks').Path
 
 & $python -m PyInstaller --noconfirm --clean --onedir --console `
     --name continuo-analysis --specpath build --workpath build/pyinstaller `
@@ -15,9 +14,7 @@ $hooks = (Resolve-Path 'scripts/hooks').Path
     --exclude-module matplotlib --exclude-module librosa.display --exclude-module IPython `
     --exclude-module ipywidgets --exclude-module plotly --exclude-module anywidget `
     --exclude-module pandas --exclude-module pyarrow --exclude-module notebook --exclude-module jupyterlab `
-    --additional-hooks-dir "$hooks" --add-data "${models};models" `
+    --exclude-module madmom --add-data "${models};models" `
     analysis_entry.py
 if ($LASTEXITCODE -ne 0) { throw 'Analysis backend build failed.' }
-$modelFiles = Get-ChildItem 'dist/continuo-analysis' -Recurse -File | Where-Object { $_.FullName -match '[\\/]madmom[\\/]' -and $_.Extension -in '.pkl', '.npy', '.npz', '.h5', '.hdf5', '.mat' }
-if ($modelFiles) { throw 'Unexpected madmom data/model files in backend bundle. Do not distribute this build.' }
 Write-Host 'Backend built: dist\continuo-analysis\continuo-analysis.exe'
