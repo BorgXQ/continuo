@@ -17,7 +17,7 @@ function track(id = 'track1', slot = 0): SavedTrack {
         1: [{ target: 2, probability: 1 }], 2: [{ target: 0, probability: 1 }] } } };
 }
 
-test('old analysis requires reanalysis without losing track metadata or audio settings', () => {
+test('DBN analysis requires reanalysis without losing track metadata or audio settings', () => {
   const directory = mkdtempSync(join(tmpdir(), 'continuo-analysis-version-'));
   const path = join(directory, 'library.sqlite');
   try {
@@ -27,7 +27,7 @@ test('old analysis requires reanalysis without losing track metadata or audio se
     initial.close();
     const raw = new DatabaseSync(path);
     const saved = JSON.parse(String(raw.prepare('SELECT analysis FROM tracks').get()!.analysis));
-    delete saved.analysisVersion;
+    saved.analysisVersion = 'pareto-exits-v1';
     raw.prepare('UPDATE tracks SET analysis = ?').run(JSON.stringify(saved));
     raw.close();
     const restored = new LibraryStore(path);

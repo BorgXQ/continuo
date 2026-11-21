@@ -7,7 +7,7 @@ from .exit_features import FEATURE_NAMES, extract_exits, pair_vector, pareto_mas
 
 
 def select_transitions(pairs, values):
-    """Apply inclusive level/CENS limits, then the global minimization frontier."""
+    """Bound level/CENS errors, then adapt slope caps to the Pareto count."""
     pairs = np.asarray(pairs, dtype=int).reshape(-1, 2)
     values = np.asarray(values, dtype=float).reshape(-1, len(FEATURE_NAMES))
     if len(pairs) != len(values):
@@ -18,6 +18,17 @@ def select_transitions(pairs, values):
             & (values[:, 9] <= 0.1))
     pairs, values = pairs[keep], values[keep]
     frontier = pareto_mask(values)
+    if np.count_nonzero(frontier) > 40:
+        for cap in (50, 40, 30, 20, 15, 10):
+            eligible = np.flatnonzero((values[:, [1, 4, 7]] <= cap).all(axis=1))
+            candidate = np.zeros(len(values), dtype=bool)
+            candidate[eligible] = pareto_mask(values[eligible])
+            count = np.count_nonzero(candidate)
+            if count < 10:
+                break  # Keep the previous frontier, including no slope cap on the first step.
+            frontier = candidate
+            if count <= 40:
+                break
     return [
         {"source_bar": int(source), "matched_bar": int(matched), "target_bar": int(matched + 1),
          **dict(zip(FEATURE_NAMES, map(float, vector)))}
