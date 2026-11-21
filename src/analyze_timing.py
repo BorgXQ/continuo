@@ -17,25 +17,22 @@ def _timing_from_beats(beat_times, downbeat_times):
     if np.any(indices >= len(beat_times)) or not np.allclose(beat_times[indices], downbeat_times, rtol=0, atol=1e-6):
         raise ValueError("Downbeats must coincide with detected beats.")
 
-    if np.any(np.diff(indices) != 4):
-        raise ValueError("The four-beat DBN returned inconsistent bar boundaries.")
     selected = beat_times[indices[0]:indices[-1] + 1]
+    positions = np.arange(indices[0], indices[-1] + 1)
+    beat_numbers = positions - indices[np.searchsorted(indices, positions, side="right") - 1] + 1
     downbeats = downbeat_times
     return {
         "tempo_bpm": 60.0 / np.median(np.diff(beat_times)),
-        "beats": np.column_stack((selected, np.arange(len(selected)) % 4 + 1)),
+        "beats": np.column_stack((selected, beat_numbers)),
         "beat_times": beat_times,
         "downbeat_times": downbeats,
         "bars": list(zip(downbeats[:-1], downbeats[1:])),
     }
 
 
-def analyze_timing(audio_path, beats_per_bar=(4,), *, checkpoint_path=None, audio=None, sample_rate=None):
-    """Decode Beat This! predictions with a four-beat DBN on CPU."""
-    if tuple(beats_per_bar) != (4,):
-        raise ValueError("Continuo currently supports four-beat bars only.")
+def analyze_timing(audio_path, *, checkpoint_path=None, audio=None, sample_rate=None):
+    """Use consecutive Beat This! downbeats as bars, without imposing a meter."""
     from beat_this.inference import Audio2Beats
-    from madmom.features.downbeats import DBNDownBeatTrackingProcessor
     import librosa
 
     if checkpoint_path is None:
@@ -45,11 +42,7 @@ def analyze_timing(audio_path, beats_per_bar=(4,), *, checkpoint_path=None, audi
                 raise FileNotFoundError("Bundled Beat This! checkpoint is missing. Reinstall Continuo.")
         else:
             checkpoint_path = "small0"
-    tracker = Audio2Beats(checkpoint_path=str(checkpoint_path), device="cpu", dbn=True)
-    tracker.frames2beats.dbn = DBNDownBeatTrackingProcessor(
-        beats_per_bar=[4], fps=50, min_bpm=55.0, max_bpm=215.0,
-        transition_lambda=100,
-    )
+    tracker = Audio2Beats(checkpoint_path=str(checkpoint_path), device="cpu", dbn=False)
     # Use the existing decoder rather than introduce a second MP3 backend.
     if audio is None:
         audio, sr = librosa.load(audio_path, sr=22050, mono=True)

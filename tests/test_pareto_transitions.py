@@ -29,6 +29,31 @@ class ParetoTests(unittest.TestCase):
         self.assertTrue(all(set(FEATURE_NAMES) <= row.keys() for row in result))
         self.assertEqual(select_transitions([], []), [])
 
+    def test_adaptive_slope_limits_and_rollback(self):
+        # Opposing level errors make every row nondominated; only slope caps remove rows.
+        scenarios = [
+            ([5] * 40, 40, None),
+            (list(range(5, 65)), 36, 40),
+            ([5] * 9 + [55] * 51, 60, None),  # First cap undershoots: restore no cap.
+            ([5] * 9 + [45] * 41 + [55] * 10, 50, 50),
+            ([5] * 45 + [55] * 15, 45, 10),  # Minimum cap can still leave >40.
+            ([5] * 10 + [55] * 50, 10, 50),
+            ([5] * 5, 5, None),  # Do not loosen a small initial frontier.
+        ]
+        for slopes, expected, cap in scenarios:
+            for slope_column in (1, 4, 7):
+                with self.subTest(expected=expected, slope_column=slope_column):
+                    values = np.ones((len(slopes), 10))
+                    values[:, 0] = np.linspace(0, 9, len(slopes))
+                    values[:, 3] = 9 - values[:, 0]
+                    values[:, 9] = .05
+                    values[:, slope_column] = slopes
+                    pairs = [(i + 20, 0) for i in range(len(slopes))]
+                    result = select_transitions(pairs, values)
+                    self.assertEqual(len(result), expected)
+                    if cap is not None:
+                        self.assertTrue(all(row[FEATURE_NAMES[slope_column]] <= cap for row in result))
+
     def test_weighted_fit_and_cens_distance(self):
         times = np.arange(60) * 256 / 44100 - 0.4
         first = dict(times=times, db=np.tile(np.sin(times * 70), (6, 1)), cens=np.ones((12, 60)))

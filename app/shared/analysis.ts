@@ -1,4 +1,4 @@
-export const ANALYSIS_VERSION = 'pareto-exits-v1';
+export const ANALYSIS_VERSION = 'pareto-exits-v2';
 
 export interface AnalysisResult {
   analysisVersion: string;

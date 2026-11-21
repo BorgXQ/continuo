@@ -13,7 +13,8 @@ if __name__ == "__main__":
     target.parent.mkdir(parents=True, exist_ok=True)
     torch.hub.download_url_to_file(f"{CHECKPOINT_URL}/small0.ckpt", str(target))
     load_model(str(target), device="cpu")
-    for name in ("beat-this", "madmom"):
-        package = distribution(name)
-        license_file = next(file for file in package.files if file.name == "LICENSE" and ".dist-info" in str(file))
-        shutil.copyfile(package.locate_file(license_file), target.parent / f"{name}-LICENSE.txt")
+    package = distribution("beat-this")
+    license_file = next(file for file in package.files if file.name == "LICENSE" and ".dist-info" in str(file))
+    shutil.copyfile(package.locate_file(license_file), target.parent / "beat-this-LICENSE.txt")
+    # Remove a stale notice left by earlier builds; madmom is no longer bundled.
+    (target.parent / "madmom-LICENSE.txt").unlink(missing_ok=True)

@@ -7,7 +7,7 @@ FEATURE_NAMES = tuple(
     f"{band}_{metric}" for band in ("low", "mid", "high")
     for metric in ("spectral_level_rmse_db", "spectral_slope_rmse_db_s", "residual_weighted_rmse_db")
 ) + ("cens_distance",)
-ANALYSIS_VERSION = "pareto-exits-v1"
+ANALYSIS_VERSION = "pareto-exits-v2"
 
 
 def pareto_mask(values):

@@ -26,7 +26,7 @@ def analyze(path, expected_duration):
     audio = librosa.resample(audio, orig_sr=sr, target_sr=44100)
     sr = 44100
     emit(state="running", progress=10, stage="Detecting beats and bars")
-    timing = analyze_timing(path, beats_per_bar=(4,), audio=audio, sample_rate=sr)
+    timing = analyze_timing(path, audio=audio, sample_rate=sr)
     emit(state="running", progress=45, stage="Extracting exit spectra and CENS")
     transitions = discover_pareto_transitions(
         audio, sr, timing,
