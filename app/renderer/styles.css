@@ -92,6 +92,14 @@ p { margin: 4px 0; }
 .loop-map-arc:focus-visible .loop-map-hit { stroke: #fff; stroke-opacity: .15; }
 .track-metadata { border-left: 1px dashed #505952; border-right: 1px dashed #505952; padding: 0 24px; display: grid; grid-template-columns: 65px minmax(0, 1fr); gap: 8px 12px; text-align: left; align-content: center; font-size: 14px; }
 button.track-metadata:hover { background: #171c18; }
+.track-metadata[draggable="true"] { cursor: grab; user-select: none; }
+.track-metadata[draggable="true"]:active { cursor: grabbing; }
+.playing-row { position: relative; }
+.playing-row[data-dragging="true"] { opacity: .45; }
+.playing-row[data-drop]::after { content: ''; position: absolute; left: 0; right: 0; height: 2px; background: #97cda5; pointer-events: none; }
+.playing-row[data-drop="before"]::after { top: 0; }
+.playing-row[data-drop="after"]::after { bottom: 0; }
+
 .metadata-label { color: #919a94; }
 .metadata-label::after { content: ':'; float: right; }
 .track-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }

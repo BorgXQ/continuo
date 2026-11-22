@@ -9,6 +9,7 @@ import type { PlayMode } from './proceduralEngine';
 import type { SavedTrack } from '../shared/library';
 import { useSettings } from './useSettings';
 import { AudioOutput } from './audioOutput';
+import { movePlaying } from './playingOrder';
 
 export type { PlayMode } from './proceduralEngine';
 export const MODE_LABELS: Record<PlayMode, string> = { once: 'One Time', loop: 'Normal Loop', procedural: 'Procedural Loop' };
@@ -119,6 +120,16 @@ export function useTracks(outputChannel: string | null = null) {
     const session = sessions.current.get(id);
     if (!session) return;
     session.focusedAt = performance.now();
+    setPlaying(Object.fromEntries(sessions.current));
+  }
+
+  function reorderPlaying(source: string, target: string, before: boolean) {
+    const ids = [...sessions.current.keys()].sort((a, b) =>
+      sessions.current.get(b)!.focusedAt - sessions.current.get(a)!.focusedAt);
+    const ordered = movePlaying(ids, source, target, before);
+    if (ordered === ids) return;
+    const now = performance.now();
+    ordered.forEach((id, index) => { sessions.current.get(id)!.focusedAt = now - index; });
     setPlaying(Object.fromEntries(sessions.current));
   }
 
@@ -388,5 +399,5 @@ export function useTracks(outputChannel: string | null = null) {
     };
   }, []);
 
-  return { slots, loading, settings, playing, error, setError, add, toggle, stop, focus, update, remove, swap, analyze, cancelAnalysis, cycleMode, locate };
+  return { slots, loading, settings, playing, error, setError, add, toggle, stop, focus, reorderPlaying, update, remove, swap, analyze, cancelAnalysis, cycleMode, locate };
 }

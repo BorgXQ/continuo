@@ -2,6 +2,13 @@
 
 Notable user-facing changes to Continuo are recorded here.
 
+## 1.4.1
+
+### Changed
+
+- Click a track's middle section to expand NOW PLAYING, or select it and collapse the expanded list.
+- Drag tracks by their middle section to reorder the expanded NOW PLAYING list, with edge scrolling and drop-position indicators. Ordering lasts for the current playback session.
+
 ## 1.4.0
 
 ### Changed
