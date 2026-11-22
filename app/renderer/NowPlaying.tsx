@@ -3,6 +3,8 @@ import { ChevronDown, ChevronRight, Square } from 'lucide-react';
 import type { Playback, Track } from './useTracks';
 import { MODE_LABELS } from './useTracks';
 import { LoopMap } from './LoopMap';
+import { usePlayingDrag } from './usePlayingDrag';
+import type { DragEvent } from 'react';
 
 function Spectrum({ session, active = true }: { session?: Playback; active?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -68,9 +70,13 @@ interface Props {
   stop: (id: string) => void;
   focus: (id: string) => void;
   volume: (id: string, value: number) => void;
+  reorder: (source: string, target: string, before: boolean) => void;
 }
 
-function TrackVisuals({ track, session, focus }: { track: Track; session: Playback; focus: () => void }) {
+function TrackVisuals({ track, session, focus, expanded, dragStart, dragEnd }: {
+  track: Track; session: Playback; focus: () => void; expanded: boolean;
+  dragStart: (event: DragEvent<HTMLButtonElement>) => void; dragEnd: () => void;
+}) {
   const [mapOpen, setMapOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const close = () => { setMapOpen(false); requestAnimationFrame(() => trigger.current?.focus()); };
@@ -80,7 +86,9 @@ function TrackVisuals({ track, session, focus }: { track: Track; session: Playba
         aria-expanded={mapOpen} onClick={() => setMapOpen(true)}>
         <Spectrum session={session} active={!mapOpen} />
       </button>
-      <button className="track-metadata" aria-label={`Focus ${track.name}`} onClick={focus}>
+      <button className="track-metadata" aria-label={expanded ? `Show ${track.name} and collapse NOW PLAYING` : 'Expand NOW PLAYING'}
+        aria-expanded={expanded} aria-controls="playing-list" onClick={focus}
+        draggable={expanded} onDragStart={dragStart} onDragEnd={dragEnd}>
         <span className="metadata-label">Track</span><span className="track-name">{track.name}</span>
         <span className="metadata-label">Time</span><span><Elapsed started={session.started} /></span>
         <span className="metadata-label">Status</span><span className="status">{session.stopping ? 'Fading out' : MODE_LABELS[session.mode]}</span>
@@ -127,8 +135,9 @@ function VolumeControl({ track, change }: { track: Track; change: (value: number
   </>;
 }
 
-export function NowPlaying({ tracks, playing, stop, focus, volume }: Props) {
+export function NowPlaying({ tracks, playing, stop, focus, volume, reorder }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const drag = usePlayingDrag(expanded, reorder);
   const current = tracks[0];
   const visible = expanded ? tracks : current ? [current] : [];
   return (
@@ -139,10 +148,17 @@ export function NowPlaying({ tracks, playing, stop, focus, volume }: Props) {
           {tracks.length > 0 && <span className="count">{tracks.length.toString().padStart(2, '0')}</span>}
         </button>
       </h2>
-      <div className="playing-list" id="playing-list">
+      <div ref={drag.list} className="playing-list" id="playing-list" onDragOver={drag.over} onDrop={drag.drop}>
         {visible.length ? visible.map(track => (
-          <div className={`playing-row ${current?.id === track.id ? 'selected' : ''}`} key={track.id}>
-            <TrackVisuals track={track} session={playing[track.id]} focus={() => { focus(track.id); setExpanded(false); }} />
+          <div className={`playing-row ${current?.id === track.id ? 'selected' : ''}`} key={track.id}
+            data-playing-id={track.id} data-dragging={drag.dragging === track.id}
+            data-drop={drag.dragging !== track.id && drag.destination?.id === track.id ? (drag.destination.before ? 'before' : 'after') : undefined}>
+            <TrackVisuals track={track} session={playing[track.id]} expanded={expanded}
+              dragStart={event => drag.start(event, track.id)} dragEnd={drag.end}
+              focus={() => {
+                if (expanded) { focus(track.id); setExpanded(false); }
+                else setExpanded(true);
+              }} />
             <div className="track-controls">
               <VolumeControl track={track} change={value => volume(track.id, value)} />
               <button className="stop-button" title={playing[track.id].stopping ? `Stop ${track.name} immediately` : `Stop ${track.name}`} aria-label={`Stop ${track.name}`} onClick={() => stop(track.id)}><Square size={15} /> Stop</button>

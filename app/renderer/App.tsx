@@ -23,11 +23,11 @@ export function App() {
         </div>
         <div className="credits">
           <button className="icon-button settings-button" title="Configuration" aria-label="Configuration" onClick={() => setConfigurationOpen(true)}><Settings size={18} /></button>
-          <p>v1.4.0</p>
+          <p>v1.4.1</p>
           <p>by BorgXQ</p>
         </div>
       </header>
-      <NowPlaying tracks={tracks} playing={library.playing} stop={library.stop} focus={library.focus} volume={(id, value) => library.update(id, { volume: value })} />
+      <NowPlaying tracks={tracks} playing={library.playing} stop={library.stop} focus={library.focus} reorder={library.reorderPlaying} volume={(id, value) => library.update(id, { volume: value })} />
       <Soundtracks library={library} />
       {configurationOpen && <Configuration settings={library.settings} discord={discord} close={() => setConfigurationOpen(false)} />}
       {library.error && <div role="alert" className="toast"><span>{library.error}</span><button className="icon-button" title="Dismiss" aria-label="Dismiss error" onClick={() => library.setError('')}><X size={18} /></button></div>}
